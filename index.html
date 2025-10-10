@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessible Number Guessing Game</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js CDN for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        /* Custom CSS for a clean and accessible look */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #1a202c; /* Dark background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling */
+            color: #e2e8f0; /* Light text for contrast */
+        }
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            background-color: #2d3748; /* Container background */
+            border-radius: 1.5rem; /* Rounded corners */
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5); /* Stronger shadow */
+            max-width: 90%; /* Responsive width */
+            width: 500px; /* Max width for desktop */
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            color: #ecc94b; /* Yellow for headings */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        label {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            display: block; /* Ensure label is on its own line */
+            color: #a0aec0; /* Lighter grey for labels */
+        }
+        input[type="number"] {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 2px solid #4a5568;
+            background-color: #4a5568;
+            color: #e2e8f0;
+            font-size: 1.2rem;
+            width: 100%;
+            max-width: 200px; /* Limit input width */
+            text-align: center;
+            margin-bottom: 1.5rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            -moz-appearance: textfield; /* Remove number input arrows for Firefox */
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none; /* Remove number input arrows for Chrome/Safari */
+            margin: 0;
+        }
+        .button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px; /* Pill shape */
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Gradient background */
+            color: white;
+            margin-top: 1rem;
+        }
+        .button:hover {
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+            background-image: linear-gradient(135deg, #5a67d8 0%, #6a3e91 100%); /* Darker gradient on hover */
+        }
+        .button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #feedback-area {
+            min-height: 3rem; /* Reserve space */
+            margin-top: 1.5rem;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #48bb78; /* Green for success */
+        }
+        #feedback-area.error {
+            color: #fc8181; /* Red for errors */
+        }
+        #feedback-area.info {
+            color: #63b3ed; /* Blue for info */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 1.5rem;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            p {
+                font-size: 1rem;
+            }
+            label {
+                font-size: 1.1rem;
+            }
+            input[type="number"] {
+                font-size: 1.1rem;
+                padding: 0.6rem 0.8rem;
+            }
+            .button {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+            #feedback-area {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="game-container" role="main" aria-labelledby="game-title">
+        <h1 id="game-title">Guess the Number!</h1>
+
+        <p id="instructions">
+            I'm thinking of a number between 1 and 100.
+            Try to guess it! You have 10 guesses.
+        </p>
+
+        <form id="guessForm" aria-live="polite">
+            <label for="guessInput">Enter your guess:</label>
+            <input type="number" id="guessInput" min="1" max="100" aria-describedby="instructions" autofocus>
+            <button type="submit" id="submitGuess" class="button">Submit Guess</button>
+        </form>
+
+        <div id="feedback-area" role="status" aria-live="polite" aria-atomic="true">
+            <!-- Game feedback will be displayed here -->
+        </div>
+
+        <p id="guessCountDisplay" class="mt-4 text-lg font-semibold">Guesses left: <span id="remainingGuesses">10</span></p>
+
+        <button id="restartButton" class="button hidden" aria-label="Restart the game">Play Again</button>
+    </div>
+
+    <script>
+        // Tone.js setup for audio feedback
+        let successSynth, failureSynth, hintHighSynth, hintLowSynth, infoSynth, gameOverSynth;
+
+        function setupAudioSynths() {
+            // Synth for correct guess/success
+            successSynth = new Tone.Synth({
+                oscillator: { type: "sine" },
+                envelope: { attack: 0.05, decay: 0.3, sustain: 0, release: 0.5 }
+            }).toDestination();
+
+            // Synth for invalid input/error/failure
+            failureSynth = new Tone.MembraneSynth({
+                pitchDecay: 0.05,
+                octaves: 8,
+                oscillator: { type: "sawtooth" },
+                envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4, attackCurve: "exponential" },
+                volume: -10
+            }).toDestination();
+
+            // Synth for "Too High" hint
+            hintHighSynth = new Tone.Synth({
+                oscillator: { type: "triangle" },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 }
+            }).toDestination();
+
+            // Synth for "Too Low" hint
+            hintLowSynth = new Tone.Synth({
+                oscillator: { type: "square" },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 }
+            }).toDestination();
+
+            // Synth for general info/instructions
+            infoSynth = new Tone.Synth({
+                oscillator: { type: "amsine", modulationType: "sine" },
+                envelope: { attack: 0.02, decay: 0.1, sustain: 0.5, release: 0.5 }
+            }).toDestination();
+
+            // Synth for game over
+            gameOverSynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "square" },
+                envelope: { attack: 0.1, decay: 0.5, sustain: 0, release: 1.0 }
+            }).toDestination();
+        }
+
+        // Play specific sounds
+        function playSuccessSound() { if (Tone.context.state === 'running') successSynth.triggerAttackRelease("C5", "8n"); }
+        function playFailureSound() { if (Tone.context.state === 'running') failureSynth.triggerAttackRelease("C2", "8n"); }
+        function playHintHighSound() { if (Tone.context.state === 'running') { hintHighSynth.triggerAttackRelease("G4", "16n", Tone.now()); hintHighSynth.triggerAttackRelease("E4", "16n", Tone.now() + 0.1); } }
+        function playHintLowSound() { if (Tone.context.state === 'running') { hintLowSynth.triggerAttackRelease("E4", "16n", Tone.now()); hintLowSynth.triggerAttackRelease("G4", "16n", Tone.now() + 0.1); } }
+        function playInfoSound() { if (Tone.context.state === 'running') infoSynth.triggerAttackRelease("C4", "8n"); }
+        function playGameOverSound() {
+            if (Tone.context.state === 'running') gameOverSynth.triggerAttackRelease(["C3", "G2"], "2n");
+        }
+
+        // Game state variables
+        let targetNumber;
+        let guessesLeft;
+        const MAX_GUESSES = 10;
+        const MIN_NUM = 1;
+        const MAX_NUM = 100;
+
+        // UI Elements
+        const guessInput = document.getElementById('guessInput');
+        const submitGuessButton = document.getElementById('submitGuess');
+        const feedbackArea = document.getElementById('feedback-area');
+        const restartButton = document.getElementById('restartButton');
+        const instructionsText = document.getElementById('instructions');
+        const remainingGuessesSpan = document.getElementById('remainingGuesses');
+
+        /**
+         * Initializes a new game.
+         * Resets game state and UI, generates a new target number.
+         */
+        function initializeGame() {
+            targetNumber = Math.floor(Math.random() * (MAX_NUM - MIN_NUM + 1)) + MIN_NUM;
+            guessesLeft = MAX_GUESSES;
+            updateFeedback('info', `I'm thinking of a number between ${MIN_NUM} and ${MAX_NUM}.`);
+            instructionsText.textContent = `I'm thinking of a number between ${MIN_NUM} and ${MAX_NUM}. You have ${MAX_GUESSES} guesses.`;
+            updateGuessCountDisplay();
+            guessInput.value = '';
+            guessInput.focus(); // Focus on input for screen readers
+            submitGuessButton.disabled = false;
+            restartButton.classList.add('hidden');
+            // playInfoSound(); // This will be called by body click listener on first interaction
+        }
+
+        /**
+         * Updates the feedback area with a message and applies a class for styling.
+         * @param {string} type - 'success', 'error', or 'info'.
+         * @param {string} message - The message to display.
+         */
+        function updateFeedback(type, message) {
+            feedbackArea.textContent = message;
+            feedbackArea.className = ''; // Clear existing classes
+            feedbackArea.classList.add(type);
+        }
+
+        /**
+         * Updates the display for remaining guesses.
+         */
+        function updateGuessCountDisplay() {
+            remainingGuessesSpan.textContent = guessesLeft;
+        }
+
+        /**
+         * Handles the user's guess submission.
+         * @param {Event} event - The form submission event.
+         */
+        function handleGuess(event) {
+            event.preventDefault(); // Prevent page reload
+
+            // Ensure Tone.js audio context is running on first user interaction
+            if (Tone.context.state !== 'running') {
+                Tone.start().then(() => {
+                    console.log('Audio context started during guess handling');
+                    // No need to call setupAudioSynths here, it's already done
+                    // Re-run handleGuess or continue after context starts
+                    processGuess();
+                }).catch(e => console.error("Could not start audio context:", e));
+            } else {
+                processGuess();
+            }
+        }
+
+        function processGuess() {
+            if (guessesLeft <= 0) {
+                updateFeedback('error', 'Game over! Click "Play Again" to restart.');
+                playFailureSound();
+                return;
+            }
+
+            const guess = parseInt(guessInput.value, 10);
+
+            // Input validation
+            if (isNaN(guess) || guess < MIN_NUM || guess > MAX_NUM) {
+                updateFeedback('error', `Please enter a valid number between ${MIN_NUM} and ${MAX_NUM}.`);
+                playFailureSound();
+                guessInput.focus();
+                return;
+            }
+
+            guessesLeft--;
+            updateGuessCountDisplay();
+
+            if (guess === targetNumber) {
+                updateFeedback('success', `Congratulations! You guessed the number ${targetNumber} in ${MAX_GUESSES - guessesLeft} guesses!`);
+                playSuccessSound();
+                endGame(true);
+            } else if (guess < targetNumber) {
+                updateFeedback('info', `Too low! Try a higher number. Guesses left: ${guessesLeft}`);
+                playHintLowSound();
+            } else { // guess > targetNumber
+                updateFeedback('info', `Too high! Try a lower number. Guesses left: ${guessesLeft}`);
+                playHintHighSound();
+            }
+
+            if (guessesLeft === 0 && guess !== targetNumber) {
+                updateFeedback('error', `Game over! You ran out of guesses. The number was ${targetNumber}.`);
+                playGameOverSound();
+                endGame(false);
+            }
+
+            guessInput.value = ''; // Clear input field
+            guessInput.focus(); // Keep focus on input for next guess
+        }
+
+
+        /**
+         * Ends the game, disabling input and showing restart button.
+         * @param {boolean} won - True if the player won, false otherwise.
+         */
+        function endGame(won) {
+            submitGuessButton.disabled = true;
+            guessInput.disabled = true;
+            restartButton.classList.remove('hidden');
+            if (!won) {
+                 playGameOverSound();
+            }
+            restartButton.focus(); // Focus restart button for screen readers
+        }
+
+        // Event Listeners
+        submitGuessButton.addEventListener('click', handleGuess);
+        guessForm.addEventListener('submit', handleGuess); // Also handle enter key
+        restartButton.addEventListener('click', () => {
+            guessInput.disabled = false;
+            initializeGame();
+        });
+
+        // Initialize Tone.js synths and game when the window loads
+        window.onload = function() {
+            // Initialize synths as soon as possible, they will be "silent" until Tone.context.state is 'running'
+            setupAudioSynths();
+
+            // Tone.js requires an initial user interaction to start audio context.
+            // This ensures Tone.start() is called on the first click/interaction with the body.
+            document.body.addEventListener('click', () => {
+                if (Tone.context.state !== 'running') {
+                    Tone.start().then(() => {
+                        console.log('Audio context started');
+                        // Play initial info sound after audio context is running
+                        playInfoSound();
+                    }).catch(e => console.error("Could not start audio context:", e));
+                }
+            }, { once: true }); // Ensure this listener only fires once
+
+            // Initialize the game state and UI
+            initializeGame();
+            updateFeedback('info', 'Type a number and click "Submit Guess" or press Enter to start!');
+            instructionsText.textContent = `I'm thinking of a number between ${MIN_NUM} and ${MAX_NUM}. You have ${MAX_GUESSES} guesses.`;
+            updateGuessCountDisplay();
+            restartButton.classList.add('hidden'); // Ensure restart button is hidden initially
+        };
+
+    </script>
+</body>
+</html>
+  
