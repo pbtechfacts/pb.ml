@@ -3,378 +3,1052 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessible Number Guessing Game</title>
-    <!-- Tailwind CSS CDN -->
+    <script>
+        // NOTE: Replace "YOUR_GEMINI_API_KEY" with your actual key.
+        const MY_API_KEY = "AIzaSyAfFeY6cOJ1qng6q_dgpaEQVlvECqQ_Z9Y"; 
+    </script>
+    <title>PB Chat - Your Advanced AI Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Tone.js CDN for sound effects -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        /* Custom CSS for a clean and accessible look */
+        /* General Styles and Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body {
-            font-family: "Inter", sans-serif;
-            background-color: #1a202c; /* Dark background */
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            overflow: hidden; /* Prevent scrolling */
-            color: #e2e8f0; /* Light text for contrast */
-        }
-        .game-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 2rem;
-            background-color: #2d3748; /* Container background */
-            border-radius: 1.5rem; /* Rounded corners */
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5); /* Stronger shadow */
-            max-width: 90%; /* Responsive width */
-            width: 500px; /* Max width for desktop */
-            text-align: center;
-        }
-        h1 {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 1.5rem;
-            color: #ecc94b; /* Yellow for headings */
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        p {
-            font-size: 1.1rem;
-            margin-bottom: 1rem;
-            line-height: 1.5;
-        }
-        label {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-            display: block; /* Ensure label is on its own line */
-            color: #a0aec0; /* Lighter grey for labels */
-        }
-        input[type="number"] {
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            border: 2px solid #4a5568;
-            background-color: #4a5568;
-            color: #e2e8f0;
-            font-size: 1.2rem;
-            width: 100%;
-            max-width: 200px; /* Limit input width */
-            text-align: center;
-            margin-bottom: 1.5rem;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-            -moz-appearance: textfield; /* Remove number input arrows for Firefox */
-        }
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none; /* Remove number input arrows for Chrome/Safari */
-            margin: 0;
-        }
-        .button {
-            padding: 0.75rem 1.5rem;
-            border-radius: 9999px; /* Pill shape */
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            transition: all 0.2s ease-in-out;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Gradient background */
-            color: white;
-            margin-top: 1rem;
-        }
-        .button:hover {
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
-            transform: translateY(-2px);
-            background-image: linear-gradient(135deg, #5a67d8 0%, #6a3e91 100%); /* Darker gradient on hover */
-        }
-        .button:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        #feedback-area {
-            min-height: 3rem; /* Reserve space */
-            margin-top: 1.5rem;
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: #48bb78; /* Green for success */
-        }
-        #feedback-area.error {
-            color: #fc8181; /* Red for errors */
-        }
-        #feedback-area.info {
-            color: #63b3ed; /* Blue for info */
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
         }
 
-        /* Responsive adjustments */
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background: #111827;
+            background-image: radial-gradient(#252e3b 1px, transparent 1px), radial-gradient(#252e3b 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+            color: #e5e7eb;
+        }
+        .dark-mode .chat-container {
+            background: rgba(31, 41, 55, 0.95);
+            border: 2px solid #374151;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+        }
+        .dark-mode header {
+            background: linear-gradient(45deg, #1d4ed8, #4338ca);
+        }
+        .dark-mode .message-you .message-card {
+            background: linear-gradient(45deg, #4338ca, #3b82f6);
+        }
+        .dark-mode .message-assistant .message-card {
+            background: #374151;
+            color: #d1d5db;
+        }
+        .dark-mode .input-area {
+            background: #1f2937;
+            border-top: 1px solid #374151;
+        }
+        .dark-mode textarea {
+            background: #374151;
+            border-color: #4b5563;
+            color: #e5e7eb;
+        }
+        .dark-mode .tools-dropdown {
+            background: #374151;
+            border-color: #4b5563;
+            color: #e5e7eb;
+        }
+        .dark-mode .footer {
+            background: #1f2937;
+            border-top: 1px solid #374151;
+        }
+        .dark-mode .about-button {
+            color: #93c5fd;
+        }
+        .dark-mode .about-button:hover {
+            color: #60a5fa;
+        }
+        .dark-mode .modal-content {
+            background: #1f2937;
+            color: #e5e7eb;
+        }
+        .dark-mode .modal-close-button {
+            background: #60a5fa;
+        }
+        .dark-mode .modal-close-button:hover {
+            background: #3b82f6;
+        }
+        .dark-mode .action-button {
+            background-color: #4b5563;
+            color: #d1d5db;
+        }
+        .dark-mode .message-you pre code {
+            background: rgba(55, 65, 81, 0.9);
+            border-color: #4b5563;
+        }
+        .dark-mode .message-assistant pre code {
+            background: rgba(31, 41, 55, 0.9);
+            border-color: #4b5563;
+        }
+        .dark-mode pre code {
+            color: #e5e7eb;
+        }
+
+
+        /* Chat Container & Layout */
+        .chat-container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 2rem;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 2px solid #fff;
+            backdrop-filter: blur(10px);
+        }
+        header {
+            padding: 2rem;
+            background: linear-gradient(45deg, #1d4ed8, #4f46e5);
+            color: #fff;
+            text-align: center;
+            border-radius: 1.5rem 1.5rem 0 0;
+            animation: fadeInDown 0.8s ease-out;
+            position: relative;
+        }
+        .dark-mode-toggle {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            cursor: pointer;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease;
+        }
+        .dark-mode-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .dark-mode-toggle svg {
+            width: 1.5rem;
+            height: 1.5rem;
+            color: #fff;
+        }
+        h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .about-text {
+            font-size: 1rem;
+            font-weight: 400;
+        }
+        main {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            height: 60vh;
+            scrollbar-width: thin;
+            scrollbar-color: #9ca3af #e5e7eb;
+        }
+        main::-webkit-scrollbar {
+            width: 8px;
+        }
+        main::-webkit-scrollbar-thumb {
+            background-color: #9ca3af;
+            border-radius: 10px;
+        }
+        main::-webkit-scrollbar-track {
+            background-color: #e5e7eb;
+        }
+        .dark-mode main::-webkit-scrollbar-thumb { background-color: #6b7280; }
+        .dark-mode main::-webkit-scrollbar-track { background-color: #1f2937; }
+
+        /* Message Styles */
+        .message-you {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            animation: fadeInRight 0.5s ease-out;
+        }
+        .message-assistant {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            animation: fadeInLeft 0.5s ease-out;
+        }
+        .message-card {
+            padding: 1.25rem;
+            border-radius: 1.25rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 85%;
+            font-size: 1rem;
+            line-height: 1.5;
+            transition: transform 0.3s ease-in-out;
+        }
+        .message-card:hover {
+            transform: translateY(-3px);
+        }
+        .message-you .message-card {
+            background: linear-gradient(45deg, #3b82f6, #2563eb);
+            color: #fff;
+            border-bottom-right-radius: 0.5rem;
+        }
+        .message-assistant .message-card {
+            background: linear-gradient(45deg, #e5e7eb, #d1d5db);
+            color: #1f2937;
+            border-bottom-left-radius: 0.5rem;
+        }
+        .message-header {
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+        .markdown-content p {
+            margin-bottom: 1rem;
+        }
+        .markdown-content ul, .markdown-content ol {
+            padding-left: 2rem;
+            margin-bottom: 1rem;
+        }
+        .markdown-content code, .markdown-content pre {
+            background-color: #f3f4f6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .dark-mode .markdown-content code, .dark-mode .markdown-content pre {
+            background-color: #374151;
+        }
+        .markdown-content pre {
+            display: block;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .markdown-content a {
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+        .message-card img {
+            max-width: 100%;
+            border-radius: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #6b7280;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+            margin: 0 2px;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        /* Input and Tools Area */
+        .input-area {
+            padding: 1.5rem;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        textarea {
+            flex-grow: 1;
+            border-radius: 1rem;
+            border: 1px solid #d1d5db;
+            padding: 0.75rem 1rem;
+            resize: none;
+            height: 50px;
+            overflow: hidden;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+        .tools-dropdown {
+            border-radius: 1rem;
+            border: 1px solid #d1d5db;
+            padding: 0.75rem 1rem;
+            background: #fff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .tools-dropdown:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+        .action-button {
+            padding: 0.75rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .action-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .action-button:disabled {
+            background-color: #9ca3af !important;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .send-button { background: linear-gradient(45deg, #10b981, #059669); color: #fff; }
+        .voice-button { background: #facc15; color: #fff; }
+        .file-button { background: #3b82f6; color: #fff; }
+        .listen-button { background: #4f46e5; color: #fff; }
+        .copy-button { background: #6b7280; color: #fff; }
+        .good-button { background: #10b981; color: #fff; }
+        .bad-button { background: #ef4444; color: #fff; }
+        .share-button { background: #facc15; color: #fff; }
+        .loading-animation {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #10b981;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 1.5rem;
+            background: #e5e7eb;
+            border-top: 1px solid #d1d5db;
+            border-radius: 0 0 1.5rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .about-button {
+            color: #4f46e5;
+            font-weight: 700;
+            transition: color 0.2s ease;
+        }
+        .about-button:hover {
+            color: #1e40af;
+        }
+        
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-content {
+            background: #fff;
+            padding: 2.5rem;
+            border-radius: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            animation: scaleIn 0.3s ease-out;
+        }
+        .modal-content h2 {
+            font-size: 2rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+        }
+        .modal-close-button {
+            background: #4f46e5;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 1rem;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+        .modal-close-button:hover {
+            background: #3730a3;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeInLeft { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.7); opacity: 0.5; } }
+        
+        /* Responsive design */
         @media (max-width: 768px) {
-            .game-container {
-                padding: 1.5rem;
-            }
-            h1 {
-                font-size: 2rem;
-            }
-            p {
-                font-size: 1rem;
-            }
-            label {
-                font-size: 1.1rem;
-            }
-            input[type="number"] {
-                font-size: 1.1rem;
-                padding: 0.6rem 0.8rem;
-            }
-            .button {
-                padding: 0.6rem 1.2rem;
-                font-size: 0.9rem;
-            }
-            #feedback-area {
-                font-size: 1.2rem;
-            }
+            h1 { font-size: 2.5rem; }
+            .input-area { flex-wrap: wrap; }
+            .tools-dropdown, textarea, .action-button { width: 100%; }
+            .message-card { max-width: 100%; }
+            .footer { flex-direction: column; gap: 0.5rem; }
         }
     </style>
 </head>
-<body class="antialiased">
-    <div class="game-container" role="main" aria-labelledby="game-title">
-        <h1 id="game-title">Guess the Number!</h1>
+<body>
 
-        <p id="instructions">
-            I'm thinking of a number between 1 and 100.
-            Try to guess it! You have 10 guesses.
-        </p>
-
-        <form id="guessForm" aria-live="polite">
-            <label for="guessInput">Enter your guess:</label>
-            <input type="number" id="guessInput" min="1" max="100" aria-describedby="instructions" autofocus>
-            <button type="submit" id="submitGuess" class="button">Submit Guess</button>
-        </form>
-
-        <div id="feedback-area" role="status" aria-live="polite" aria-atomic="true">
-            <!-- Game feedback will be displayed here -->
+<div id="pb-chat-app" class="chat-container">
+    <header>
+        <h1>PB Chat</h1>
+        <p class="about-text">Your advanced AI assistant.</p>
+        <div id="dark-mode-toggle" class="dark-mode-toggle" aria-label="Toggle dark mode">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
         </div>
+    </header>
 
-        <p id="guessCountDisplay" class="mt-4 text-lg font-semibold">Guesses left: <span id="remainingGuesses">10</span></p>
+    <main id="chat-messages"></main>
 
-        <button id="restartButton" class="button hidden" aria-label="Restart the game">Play Again</button>
+    <div class="input-area">
+        <select id="tool-select" class="tools-dropdown">
+            <option value="General Chat">General Chat</option>
+            <option value="Image generation">Image Generation</option>
+            <option value="Code generation">Code Generation</option>
+            <option value="Music description">Music Description</option>
+            <option value="Deep research">Deep Research</option>
+            <option value="Image analysis">Image Analysis</option>
+        </select>
+        <button id="voice-input-button" class="action-button voice-button" aria-label="Start voice input">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M7 4a3 3 0 016 0v6a3 3 0 11-6 0V4z" />
+                <path fill-rule="evenodd" d="M6 10a4 4 0 004 4v2a1 1 0 102 0v-2a4 4 0 004-4V4a1 1 0 00-2 0v6a2 2 0 11-4 0V4a1 1 0 00-2 0v6a2 2 0 11-4 0V4a1 1 0 00-2 0v6z" clip-rule="evenodd" />
+            </svg>
+        </button>
+        <button id="file-upload-button" class="action-button file-button" aria-label="Upload file">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 6a2 2 0 012-2h5l2 2h4a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm3 4a1 1 0 100 2h10a1 1 0 100-2H5z" />
+            </svg>
+        </button>
+        <input type="file" id="file-input" class="hidden" accept="image/*, .pdf, .txt">
+        <textarea id="user-input" placeholder="Type your message..." rows="1" aria-label="Message input box"></textarea>
+        <button id="send-button" class="action-button send-button" aria-label="Send message">
+            <svg id="send-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 00.149 1.404.984.984 0 00.72.195l13.75-4.583a1 1 0 000-1.888l-13.75-4.583a.984.984 0 00-.72.195.999.999 0 00-.149 1.404l7 14z" />
+            </svg>
+            <div id="loading-spinner" class="loading-animation hidden"></div>
+        </button>
     </div>
 
-    <script>
-        // Tone.js setup for audio feedback
-        let successSynth, failureSynth, hintHighSynth, hintLowSynth, infoSynth, gameOverSynth;
+    <footer class="footer">
+        <button id="about-button" class="about-button">About</button>
+        <span>漏 2024 PB Digital Solutions. All Rights Reserved.</span>
+    </footer>
+</div>
 
-        function setupAudioSynths() {
-            // Synth for correct guess/success
-            successSynth = new Tone.Synth({
-                oscillator: { type: "sine" },
-                envelope: { attack: 0.05, decay: 0.3, sustain: 0, release: 0.5 }
-            }).toDestination();
+<div id="about-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h2>About PB Chat</h2>
+        <p class="text-gray-700 mb-4">
+            PB Chat is an advanced AI assistant designed to simplify your daily tasks with powerful generative tools. You can use it for general conversation, creative content, writing code, composing music, deep research, and quick answers.
+        </p>
+        <p class="text-gray-700 mb-6">
+            This application is created by PB Digital Solutions, founded by Pogula Bavadesh.
+        </p>
+        <button id="close-modal-button" class="modal-close-button w-full">Close</button>
+    </div>
+</div>
 
-            // Synth for invalid input/error/failure
-            failureSynth = new Tone.MembraneSynth({
-                pitchDecay: 0.05,
-                octaves: 8,
-                oscillator: { type: "sawtooth" },
-                envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4, attackCurve: "exponential" },
-                volume: -10
-            }).toDestination();
+<div id="message-modal" class="modal-overlay hidden">
+    <div class="modal-content text-center">
+        <p id="modal-text" class="text-gray-700 mb-4"></p>
+        <button id="close-message-button" class="modal-close-button px-4">OK</button>
+    </div>
+</div>
 
-            // Synth for "Too High" hint
-            hintHighSynth = new Tone.Synth({
-                oscillator: { type: "triangle" },
-                envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 }
-            }).toDestination();
+<script>
+    // --- Utility Functions for Audio and API ---
 
-            // Synth for "Too Low" hint
-            hintLowSynth = new Tone.Synth({
-                oscillator: { type: "square" },
-                envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 }
-            }).toDestination();
-
-            // Synth for general info/instructions
-            infoSynth = new Tone.Synth({
-                oscillator: { type: "amsine", modulationType: "sine" },
-                envelope: { attack: 0.02, decay: 0.1, sustain: 0.5, release: 0.5 }
-            }).toDestination();
-
-            // Synth for game over
-            gameOverSynth = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: "square" },
-                envelope: { attack: 0.1, decay: 0.5, sustain: 0, release: 1.0 }
-            }).toDestination();
+    const base64ToArrayBuffer = (base64) => {
+        const binaryString = atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
         }
+        return bytes.buffer;
+    };
 
-        // Play specific sounds
-        function playSuccessSound() { if (Tone.context.state === 'running') successSynth.triggerAttackRelease("C5", "8n"); }
-        function playFailureSound() { if (Tone.context.state === 'running') failureSynth.triggerAttackRelease("C2", "8n"); }
-        function playHintHighSound() { if (Tone.context.state === 'running') { hintHighSynth.triggerAttackRelease("G4", "16n", Tone.now()); hintHighSynth.triggerAttackRelease("E4", "16n", Tone.now() + 0.1); } }
-        function playHintLowSound() { if (Tone.context.state === 'running') { hintLowSynth.triggerAttackRelease("E4", "16n", Tone.now()); hintLowSynth.triggerAttackRelease("G4", "16n", Tone.now() + 0.1); } }
-        function playInfoSound() { if (Tone.context.state === 'running') infoSynth.triggerAttackRelease("C4", "8n"); }
-        function playGameOverSound() {
-            if (Tone.context.state === 'running') gameOverSynth.triggerAttackRelease(["C3", "G2"], "2n");
-        }
+    const pcmToWav = (pcmData, sampleRate) => {
+        const pcm16 = new Int16Array(pcmData);
+        const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+        const view = new DataView(buffer);
 
-        // Game state variables
-        let targetNumber;
-        let guessesLeft;
-        const MAX_GUESSES = 10;
-        const MIN_NUM = 1;
-        const MAX_NUM = 100;
-
-        // UI Elements
-        const guessInput = document.getElementById('guessInput');
-        const submitGuessButton = document.getElementById('submitGuess');
-        const feedbackArea = document.getElementById('feedback-area');
-        const restartButton = document.getElementById('restartButton');
-        const instructionsText = document.getElementById('instructions');
-        const remainingGuessesSpan = document.getElementById('remainingGuesses');
-
-        /**
-         * Initializes a new game.
-         * Resets game state and UI, generates a new target number.
-         */
-        function initializeGame() {
-            targetNumber = Math.floor(Math.random() * (MAX_NUM - MIN_NUM + 1)) + MIN_NUM;
-            guessesLeft = MAX_GUESSES;
-            updateFeedback('info', `I'm thinking of a number between ${MIN_NUM} and ${MAX_NUM}.`);
-            instructionsText.textContent = `I'm thinking of a number between ${MIN_NUM} and ${MAX_NUM}. You have ${MAX_GUESSES} guesses.`;
-            updateGuessCountDisplay();
-            guessInput.value = '';
-            guessInput.focus(); // Focus on input for screen readers
-            submitGuessButton.disabled = false;
-            restartButton.classList.add('hidden');
-            // playInfoSound(); // This will be called by body click listener on first interaction
-        }
-
-        /**
-         * Updates the feedback area with a message and applies a class for styling.
-         * @param {string} type - 'success', 'error', or 'info'.
-         * @param {string} message - The message to display.
-         */
-        function updateFeedback(type, message) {
-            feedbackArea.textContent = message;
-            feedbackArea.className = ''; // Clear existing classes
-            feedbackArea.classList.add(type);
-        }
-
-        /**
-         * Updates the display for remaining guesses.
-         */
-        function updateGuessCountDisplay() {
-            remainingGuessesSpan.textContent = guessesLeft;
-        }
-
-        /**
-         * Handles the user's guess submission.
-         * @param {Event} event - The form submission event.
-         */
-        function handleGuess(event) {
-            event.preventDefault(); // Prevent page reload
-
-            // Ensure Tone.js audio context is running on first user interaction
-            if (Tone.context.state !== 'running') {
-                Tone.start().then(() => {
-                    console.log('Audio context started during guess handling');
-                    // No need to call setupAudioSynths here, it's already done
-                    // Re-run handleGuess or continue after context starts
-                    processGuess();
-                }).catch(e => console.error("Could not start audio context:", e));
-            } else {
-                processGuess();
+        const writeString = (view, offset, string) => {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
             }
-        }
-
-        function processGuess() {
-            if (guessesLeft <= 0) {
-                updateFeedback('error', 'Game over! Click "Play Again" to restart.');
-                playFailureSound();
-                return;
-            }
-
-            const guess = parseInt(guessInput.value, 10);
-
-            // Input validation
-            if (isNaN(guess) || guess < MIN_NUM || guess > MAX_NUM) {
-                updateFeedback('error', `Please enter a valid number between ${MIN_NUM} and ${MAX_NUM}.`);
-                playFailureSound();
-                guessInput.focus();
-                return;
-            }
-
-            guessesLeft--;
-            updateGuessCountDisplay();
-
-            if (guess === targetNumber) {
-                updateFeedback('success', `Congratulations! You guessed the number ${targetNumber} in ${MAX_GUESSES - guessesLeft} guesses!`);
-                playSuccessSound();
-                endGame(true);
-            } else if (guess < targetNumber) {
-                updateFeedback('info', `Too low! Try a higher number. Guesses left: ${guessesLeft}`);
-                playHintLowSound();
-            } else { // guess > targetNumber
-                updateFeedback('info', `Too high! Try a lower number. Guesses left: ${guessesLeft}`);
-                playHintHighSound();
-            }
-
-            if (guessesLeft === 0 && guess !== targetNumber) {
-                updateFeedback('error', `Game over! You ran out of guesses. The number was ${targetNumber}.`);
-                playGameOverSound();
-                endGame(false);
-            }
-
-            guessInput.value = ''; // Clear input field
-            guessInput.focus(); // Keep focus on input for next guess
-        }
-
-
-        /**
-         * Ends the game, disabling input and showing restart button.
-         * @param {boolean} won - True if the player won, false otherwise.
-         */
-        function endGame(won) {
-            submitGuessButton.disabled = true;
-            guessInput.disabled = true;
-            restartButton.classList.remove('hidden');
-            if (!won) {
-                 playGameOverSound();
-            }
-            restartButton.focus(); // Focus restart button for screen readers
-        }
-
-        // Event Listeners
-        submitGuessButton.addEventListener('click', handleGuess);
-        guessForm.addEventListener('submit', handleGuess); // Also handle enter key
-        restartButton.addEventListener('click', () => {
-            guessInput.disabled = false;
-            initializeGame();
-        });
-
-        // Initialize Tone.js synths and game when the window loads
-        window.onload = function() {
-            // Initialize synths as soon as possible, they will be "silent" until Tone.context.state is 'running'
-            setupAudioSynths();
-
-            // Tone.js requires an initial user interaction to start audio context.
-            // This ensures Tone.start() is called on the first click/interaction with the body.
-            document.body.addEventListener('click', () => {
-                if (Tone.context.state !== 'running') {
-                    Tone.start().then(() => {
-                        console.log('Audio context started');
-                        // Play initial info sound after audio context is running
-                        playInfoSound();
-                    }).catch(e => console.error("Could not start audio context:", e));
-                }
-            }, { once: true }); // Ensure this listener only fires once
-
-            // Initialize the game state and UI
-            initializeGame();
-            updateFeedback('info', 'Type a number and click "Submit Guess" or press Enter to start!');
-            instructionsText.textContent = `I'm thinking of a number between ${MIN_NUM} and ${MAX_NUM}. You have ${MAX_GUESSES} guesses.`;
-            updateGuessCountDisplay();
-            restartButton.classList.add('hidden'); // Ensure restart button is hidden initially
         };
 
-    </script>
+        // WAV header
+        writeString(view, 0, 'RIFF');
+        view.setUint32(4, 36 + pcm16.length * 2, true);
+        writeString(view, 8, 'WAVE');
+        writeString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); // PCM format
+        view.setUint16(22, 1, true); // Mono
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true); // block align
+        view.setUint16(34, 16, true); // bits per sample
+        writeString(view, 36, 'data');
+        view.setUint32(40, pcm16.length * 2, true);
+        
+        for (let i = 0; i < pcm16.length; i++) {
+            view.setInt16(44 + i * 2, pcm16[i], true);
+        }
+
+        return new Blob([view], { type: 'audio/wav' });
+    };
+    
+    // Helper function to escape text for HTML attributes
+    function escapeHtmlAttribute(text) {
+        if (!text) return '';
+        return text.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
+    // --- DOM Elements & State ---
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const toolSelect = document.getElementById('tool-select');
+    const sendButton = document.getElementById('send-button');
+    const sendIcon = document.getElementById('send-icon');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const aboutButton = document.getElementById('about-button');
+    const aboutModal = document.getElementById('about-modal');
+    const closeModalButton = document.getElementById('close-modal-button');
+    const messageModal = document.getElementById('message-modal');
+    const modalText = document.getElementById('modal-text');
+    const closeMessageButton = document.getElementById('close-message-button');
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const fileUploadButton = document.getElementById('file-upload-button');
+    const fileInput = document.getElementById('file-input');
+    const voiceInputButton = document.getElementById('voice-input-button');
+    
+    let isLoading = false;
+    let messages = [{
+        sender: 'AI',
+        text: "Hello! Welcome to PB Chat. The 'General Chat' tool is selected by default. How can I help you today?",
+        language: 'en-US'
+    }];
+    
+    let uploadedFile = null;
+
+    // --- API Configuration & Helpers ---
+    const GEMINI_TEXT_MODEL = "gemini-2.5-flash-preview-05-20";
+    const GEMINI_IMAGE_GEN_MODEL = "imagen-3.0-generate-002";
+    const GEMINI_TTS_MODEL = "gemini-2.5-flash-preview-tts";
+    // *** API Key is now read from the script tag in the head. ***
+    const API_KEY = MY_API_KEY; 
+
+    // --- Core UI & Logic ---
+
+    // Display messages at startup
+    renderMessages();
+
+    // Show custom modal message
+    const showMessage = (text) => {
+        modalText.textContent = text;
+        messageModal.classList.remove('hidden');
+    };
+
+    // Hide custom modal message
+    const hideMessage = () => {
+        messageModal.classList.add('hidden');
+    };
+
+    // Render messages to the DOM
+    function renderMessages() {
+        chatMessages.innerHTML = '';
+        messages.forEach(msg => {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = `w-full ${msg.sender === 'User' ? 'flex justify-end' : 'flex justify-start'}`;
+
+            if (msg.sender === 'User') {
+                let userContent = msg.text;
+                if (msg.imageData) {
+                    userContent += `<img src="${msg.imageData}" alt="Uploaded image" class="mt-4 rounded-lg">`;
+                }
+                messageWrapper.innerHTML = `
+                    <div class="message-you">
+                        <h3 class="message-header">You Said:</h3>
+                        <div class="message-card">${userContent}</div>
+                    </div>
+                `;
+            } else {
+                let formattedText = marked.parse(msg.text);
+                if (msg.imageUrl) {
+                    formattedText += `<img src="${msg.imageUrl}" alt="Generated image" class="mt-4 rounded-lg">`;
+                }
+                messageWrapper.innerHTML = `
+                    <div class="message-assistant">
+                        <h3 class="message-header">Assistant Said:</h3>
+                        <div class="message-card">
+                            <div class="flex items-center space-x-2 mb-2">
+                                <button onclick="handleListen('${escapeHtmlAttribute(msg.text)}', '${msg.language}')" class="action-button listen-button" aria-label="Listen to response">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                                <select onchange="handleVoiceChange('${escapeHtmlAttribute(msg.text)}', this.value)" class="p-1 rounded-lg text-sm bg-white border border-gray-300">
+                                    <option value="Kore" ${msg.language === 'en-US' ? 'selected' : ''}>Firm Female (US)</option>
+                                    <option value="Puck" ${msg.language === 'en-US' ? '' : ''}>Upbeat Female (US)</option>
+                                    <option value="Zephyr" ${msg.language === 'en-US' ? '' : ''}>Bright Male (US)</option>
+                                    <option value="Charon" ${msg.language === 'en-US' ? '' : ''}>Informative Male (US)</option>
+                                    <option value="Leda" ${msg.language === 'ja-JP' ? 'selected' : ''}>Youthful Female (JP)</option>
+                                    <option value="Fenrir" ${msg.language === 'ja-JP' ? '' : ''}>Excitable Male (JP)</option>
+                                    <option value="Despina" ${msg.language === 'ko-KR' ? 'selected' : ''}>Smooth Female (KR)</option>
+                                    <option value="Umbriel" ${msg.language === 'ko-KR' ? '' : ''}>Easy-going Male (KR)</option>
+                                </select>
+                            </div>
+                            <div class="markdown-content">${formattedText}</div>
+                            <div class="flex justify-end w-full gap-2 mt-4">
+                                <button onclick="handleCopy('${escapeHtmlAttribute(msg.text)}')" class="action-button copy-button" aria-label="Copy response text">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                                    </svg>
+                                </button>
+                                <button onclick="handleFeedback('good')" class="action-button good-button" aria-label="Mark response as good">馃憤</button>
+                                <button onclick="handleFeedback('bad')" class="action-button bad-button" aria-label="Mark response as bad">馃憥</button>
+                                <button onclick="handleShare()" class="action-button share-button" aria-label="Share response">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M15 8a3 3 0 10-2.977-2.985A5.992 5.992 0 0010 11a5.992 5.992 0 00-2.023-2.985A3 3 0 105 10a4.992 4.992 0 004.977 4.985C9.496 15.698 10 17.5 10 17.5v-2a2.5 2.5 0 00-2.5-2.5h-1a2.5 2.5 0 00-2.5-2.5v-1a2.5 2.5 0 002.5-2.5h1a2.5 2.5 0 002.5-2.5V5.5c0-.825-.333-1.614-.925-2.197L9 2.5a.5.5 0 000 .866l.75.433a.5.5 0 00.5-.866L10 2.5z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            chatMessages.appendChild(messageWrapper);
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Typing indicator
+    function showTypingIndicator() {
+        if (document.getElementById('typing-indicator-container')) return;
+        const indicatorWrapper = document.createElement('div');
+        indicatorWrapper.id = 'typing-indicator-container';
+        indicatorWrapper.className = 'w-full flex justify-start';
+        indicatorWrapper.innerHTML = `
+            <div class="message-assistant">
+                <h3 class="message-header">Assistant is typing...</h3>
+                <div class="message-card">
+                    <div class="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
+        `;
+        chatMessages.appendChild(indicatorWrapper);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    function hideTypingIndicator() {
+        const indicator = document.getElementById('typing-indicator-container');
+        if (indicator) indicator.remove();
+    }
+
+    // --- Event Listeners ---
+    sendButton.addEventListener('click', handleSendMessage);
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
+        }
+    });
+    aboutButton.addEventListener('click', () => aboutModal.classList.remove('hidden'));
+    closeModalButton.addEventListener('click', () => aboutModal.classList.add('hidden'));
+    closeMessageButton.addEventListener('click', hideMessage);
+    darkModeToggle.addEventListener('click', () => document.body.classList.toggle('dark-mode'));
+    fileUploadButton.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleFileUpload);
+    voiceInputButton.addEventListener('click', startVoiceInput);
+
+
+    // --- Main Send Message Function ---
+    async function handleSendMessage() {
+        const userText = userInput.value.trim();
+        const selectedTool = toolSelect.value;
+        const file = uploadedFile;
+
+        if (userText === '' && !file) {
+            showMessage("Please enter a message or upload a file.");
+            return;
+        }
+
+        // Add user message to chat
+        const userMessage = { sender: 'User', text: userText, imageData: file ? URL.createObjectURL(file) : null };
+        messages.push(userMessage);
+        userInput.value = '';
+        fileInput.value = ''; // Reset file input
+        uploadedFile = null;
+        renderMessages();
+        
+        setIsLoading(true);
+        showTypingIndicator();
+
+        try {
+            let aiResponseText = '';
+            let aiImageUrl = null;
+            let languageCode = 'en-US'; // Default language
+            
+            // Hardcoded response for creator questions
+            const creatorQueries = ["who developed you", "who created you", "who made you", "your creator", "your founder", "who is pogula bavadesh", "who is the founder"];
+            if (creatorQueries.some(query => userText.toLowerCase().includes(query))) {
+                aiResponseText = "I was developed by PB Digital Solutions and my founder is Pogula Bavadesh.";
+            } else {
+                switch (selectedTool) {
+                    case 'Image generation':
+                        const imagePrompt = userText || "A beautiful landscape with vibrant colors";
+                        aiImageUrl = await generateImage(imagePrompt);
+                        aiResponseText = `I have generated an image for you based on the prompt: "${imagePrompt}"`;
+                        break;
+                    case 'Image analysis':
+                        if (!file) {
+                            showMessage("Please upload an image for analysis.");
+                            setIsLoading(false);
+                            hideTypingIndicator();
+                            return;
+                        }
+                        aiResponseText = await analyzeImage(userText, file);
+                        break;
+                    default:
+                        // General Chat, Code, Music, Research
+                        const prompt = createTextPrompt(userText, selectedTool);
+                        aiResponseText = await generateText(prompt);
+                        languageCode = detectLanguage(userText); // Basic language detection
+                        break;
+                }
+            }
+
+            if (aiResponseText || aiImageUrl) {
+                messages.push({
+                    sender: 'AI',
+                    text: aiResponseText || '',
+                    language: languageCode,
+                    imageUrl: aiImageUrl
+                });
+            } else {
+                messages.push({ sender: 'AI', text: 'I am sorry, I could not generate a response.', language: 'en-US' });
+            }
+        } catch (error) {
+            console.error('Error in handleSendMessage:', error);
+            messages.push({ sender: 'AI', text: 'An error occurred. Please try again.', language: 'en-US' });
+        } finally {
+            setIsLoading(false);
+            hideTypingIndicator();
+            renderMessages();
+        }
+    }
+
+    // Set loading state
+    function setIsLoading(state) {
+        isLoading = state;
+        sendButton.disabled = state;
+        voiceInputButton.disabled = state;
+        fileUploadButton.disabled = state;
+        if (state) {
+            sendIcon.classList.add('hidden');
+            loadingSpinner.classList.remove('hidden');
+        } else {
+            sendIcon.classList.remove('hidden');
+            loadingSpinner.classList.add('hidden');
+        }
+    }
+
+    // --- API Call Functions ---
+
+    // Function to generate text using Gemini
+    async function generateText(prompt) {
+        const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+        const payload = { contents: chatHistory };
+        // API_KEY used here
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent?key=${API_KEY}`;
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
+        
+        const result = await response.json();
+        return result?.candidates?.[0]?.content?.parts?.[0]?.text;
+    }
+    
+    // Function to generate an image using Imagen
+    async function generateImage(prompt) {
+        const payload = { instances: { prompt: prompt }, parameters: { "sampleCount": 1 } };
+        // API_KEY used here
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_GEN_MODEL}:predict?key=${API_KEY}`;
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`Image generation API call failed with status: ${response.status}`);
+        
+        const result = await response.json();
+        const base64Data = result?.predictions?.[0]?.bytesBase64Encoded;
+        if (base64Data) {
+            return `data:image/png;base64,${base64Data}`;
+        }
+        return null;
+    }
+    
+    // Function to analyze an image using Gemini
+    async function analyzeImage(text, file) {
+        const base64Image = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+
+        const chatHistory = [{
+            role: "user",
+            parts: [
+                { text: text || "What is in this image?" },
+                { inlineData: { mimeType: file.type, data: base64Image } }
+            ]
+        }];
+        const payload = { contents: chatHistory };
+        // API_KEY used here
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent?key=${API_KEY}`;
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`Image analysis API call failed with status: ${response.status}`);
+        
+        const result = await response.json();
+        return result?.candidates?.[0]?.content?.parts?.[0]?.text;
+    }
+
+
+    // --- Helper Functions ---
+
+    // Creates a detailed prompt based on the selected tool
+    function createTextPrompt(userText, tool) {
+        let promptPrefix = '';
+        switch (tool) {
+            case 'General Chat':
+                promptPrefix = 'Engage in a friendly and helpful conversation. ';
+                break;
+            case 'Code generation':
+                promptPrefix = 'You are a professional software engineer. Provide a well-commented code snippet in response to the user\'s request. ';
+                break;
+            case 'Music description':
+                promptPrefix = 'Describe a piece of music based on the user\'s request. Be creative and descriptive, mentioning instruments, tempo, and mood. ';
+                break;
+            case 'Deep research':
+                promptPrefix = 'You are a research assistant. Provide a detailed, well-structured, and informative explanation on the topic. ';
+                break;
+        }
+        return `${promptPrefix}User's message: "${userText}"`;
+    }
+
+    // Basic language detection
+    function detectLanguage(text) {
+        const lang = (text) => {
+            const patterns = {
+                'en-US': /[a-zA-Z]/,
+                'ja-JP': /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/, // Hiragana, Katakana, Kanji
+                'ko-KR': /[\u3131-\u318E\uAC00-\uD7A3]/ // Hangul
+            };
+            for (const code in patterns) {
+                if (patterns[code].test(text)) return code;
+            }
+            return 'en-US';
+        };
+        return lang(text);
+    }
+    
+    // Find the right voice for the language
+    function getVoiceForLanguage(langCode) {
+        const voices = {
+            'en-US': "Kore",
+            'ja-JP': "Leda",
+            'ko-KR': "Despina",
+            // Add more mappings here
+        };
+        return voices[langCode] || 'Kore';
+    }
+
+
+    // --- User Interaction Functions ---
+
+    // Listen Button functionality
+    window.handleListen = async (text, languageCode) => {
+        try {
+            const voiceName = getVoiceForLanguage(languageCode);
+            const payload = {
+                contents: [{ parts: [{ text: text }] }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } }
+                },
+                model: GEMINI_TTS_MODEL
+            };
+            // API_KEY used here
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS_MODEL}:generateContent?key=${API_KEY}`;
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("API call failed:", errorText);
+                showMessage(`API call failed with status: ${response.status}. Please try again.`);
+                return;
+            }
+
+            const result = await response.json();
+            const part = result?.candidates?.[0]?.content?.parts?.[0];
+            const audioData = part?.inlineData?.data;
+            const mimeType = part?.inlineData?.mimeType;
+
+            if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+                const pcmData = base64ToArrayBuffer(audioData);
+                const wavBlob = pcmToWav(pcmData, sampleRate);
+                const audioUrl = URL.createObjectURL(wavBlob);
+                const audio = new Audio(audioUrl);
+                audio.play();
+            } else {
+                showMessage('Failed to generate audio. The API response was not in the expected format.');
+            }
+        } catch (error) {
+            console.error("Failed to fetch TTS:", error);
+            showMessage(`An error occurred while generating audio. Please try again.`);
+        }
+    };
+    
+    window.handleVoiceChange = (text, voiceName) => {
+      handleListen(text, voiceName);
+    };
+
+    // Copy Button functionality
+    window.handleCopy = (text) => {
+        navigator.clipboard.writeText(text).then(() => {
+            showMessage('Text copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy text:', err);
+            showMessage('Failed to copy text.');
+        });
+    };
+
+    // Feedback and Share functionality
+    window.handleFeedback = (type) => {
+        if (type === 'good') showMessage("Thank you for the positive feedback!");
+        else showMessage("Thank you for your feedback. We'll use it to improve.");
+    };
+
+    window.handleShare = () => {
+        showMessage("Share functionality is a work in progress.");
+    };
+    
+    // File upload handler
+    function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            if (toolSelect.value !== 'Image analysis') {
+                showMessage("To use this file, please select the 'Image Analysis' tool.");
+                fileInput.value = '';
+                return;
+            }
+            if (!file.type.startsWith('image/')) {
+                showMessage("Only image files are supported for 'Image Analysis'.");
+                fileInput.value = '';
+                return;
+            }
+            uploadedFile = file;
+            showMessage(`File "${file.name}" ready for upload with your next message.`);
+        }
+    }
+    
+    // Voice input handler
+    function startVoiceInput() {
+        if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+            showMessage("Sorry, your browser doesn't support the Web Speech API. Please use Chrome or Edge.");
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = detectLanguage(userInput.value || 'en-US'); // Set language
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.start();
+        voiceInputButton.style.backgroundColor = 'red';
+        voiceInputButton.classList.add('animate-pulse');
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            userInput.value = transcript;
+            voiceInputButton.style.backgroundColor = '';
+            voiceInputButton.classList.remove('animate-pulse');
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error', event);
+            voiceInputButton.style.backgroundColor = '';
+            voiceInputButton.classList.remove('animate-pulse');
+            showMessage("Voice recognition failed. Please try again.");
+        };
+
+        recognition.onend = () => {
+            voiceInputButton.style.backgroundColor = '';
+            voiceInputButton.classList.remove('animate-pulse');
+        };
+    }
+
+</script>
 </body>
 </html>
-  
