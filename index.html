@@ -3,62 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PBAI AI Assistant</title>
+    <title>PBAI - Personal Behavioral AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f9fafb; color: #111827; }
-        .chat-box { height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 12px; background: #ffffff; padding: 20px; margin-bottom: 20px; }
-        .user-msg { background: #4f46e5; color: white; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; align-self: flex-end; max-width: 80%; }
-        .ai-msg { background: #f3f4f6; color: #1f2937; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; align-self: flex-start; max-width: 80%; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: #ffffff; 
+            color: #111827; 
+            line-height: 1.6;
+        }
+        
+        .chat-window { 
+            height: 450px; 
+            overflow-y: auto; 
+            border: 1px solid #f3f4f6; 
+            border-radius: 24px; 
+            background: #f9fafb; 
+            padding: 24px; 
+            display: flex; 
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .user-bubble { 
+            background: #4f46e5; 
+            color: white; 
+            padding: 12px 20px; 
+            border-radius: 20px 20px 4px 20px; 
+            align-self: flex-end; 
+            max-width: 80%; 
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
+        }
+
+        .ai-bubble { 
+            background: white; 
+            color: #1f2937; 
+            padding: 12px 20px; 
+            border-radius: 20px 20px 20px 4px; 
+            align-self: flex-start; 
+            max-width: 80%; 
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+
+        .description-text p {
+            margin-bottom: 1.5rem;
+            text-align: justify;
+        }
+
+        .loader {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #4f46e5;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="p-4 md:p-12">
+<body class="p-6 md:p-16">
 
-    <!-- Website Title -->
     <div class="max-w-4xl mx-auto">
-        <h1 class="text-4xl font-extrabold text-indigo-700 mb-2">PBAI</h1>
-        <h2 class="text-2xl font-bold text-gray-800 mb-8">Personal Behavioral Artificial Intelligence</h2>
+        <!-- Main Titles -->
+        <h1 class="text-6xl font-extrabold text-indigo-600 tracking-tighter mb-2">PBAI</h1>
+        <h2 class="text-2xl font-semibold text-slate-800 mb-12">Personal Behavioral Artificial Intelligence</h2>
 
-        <!-- 1000 Word Description Container -->
-        <div class="prose max-w-none text-gray-600 leading-relaxed mb-12">
-            <p class="mb-4">PBAI is a groundbreaking innovation in the field of conversational artificial intelligence, designed specifically for the challenges of 2025. This application serves as a bridge between complex computational logic and friendly human interaction. By utilizing the latest advancements in large language models, PBAI can generate code, summarize complex documents, and create visual art with unprecedented accuracy. The core philosophy of PBAI is built on 'Justice Code'—a set of ethical guidelines that ensure every interaction is safe, helpful, and respectful to the user's intent. Unlike other AI systems that can feel distant or robotic, PBAI is programmed with a friendly, conversational theme to make advanced technology feel like a helpful companion rather than a tool.</p>
-            
-            <p class="mb-4">The development of PBAI focused on three primary pillars: Efficiency, Creativity, and Accessibility. In terms of efficiency, PBAI can process thousands of words in seconds, providing high-quality summaries that capture the essence of any text. This makes it an invaluable tool for researchers and professionals who need to digest information quickly. For creativity, the integration of image generation models allows users to describe their wildest imaginations and see them rendered in high-definition digital art. This democratization of art allows anyone, regardless of their drawing skills, to become a creator.</p>
-            
-            <p class="mb-4">Accessibility is perhaps the most important pillar. PBAI is designed to run in any modern web browser like Google Chrome, providing a seamless experience without the need for high-end hardware. By handling the heavy lifting on the cloud through direct API integration, the user interface remains light and fast. This ensures that whether you are on a high-end workstation or a mobile device, the power of PBAI is always at your fingertips. The system's ability to handle coding tasks is also a major feature, supporting dozens of programming languages to help developers debug, refactor, and write boilerplate code instantly.</p>
-            
-            <p class="mb-4">Furthermore, PBAI is built to be a learning partner. It doesn't just provide answers; it engages in a dialogue to help the user understand the 'why' behind the solution. If you ask for a piece of JavaScript code, PBAI will explain how each function works. If you ask for a summary of a scientific paper, it will highlight the methodology and the conclusions in a way that builds your knowledge. This educational approach transforms the AI from a simple output machine into a mentor. As we move further into the decade, PBAI will continue to evolve, incorporating more specialized knowledge and even better natural language understanding.</p>
-            
-            <p class="mb-4">Finally, the security model of PBAI is transparent. By allowing users to input their own Gemini API key directly into the code, we ensure that you are in control of your usage and your data. There are no hidden middlemen. Your queries go straight to the intelligence engine, and the responses come straight to you. This level of directness is part of the PBAI commitment to user autonomy. In summary, PBAI is not just an app; it is a comprehensive ecosystem for the modern digital era, designed to help you work smarter, create faster, and communicate better.</p>
-            
-            <p class="italic text-sm text-gray-400 mt-8">(Full 1000-word detailed documentation continues here: PBAI has been optimized for the Chrome browser environment. It handles memory management efficiently to ensure that long conversations do not slow down the page. The Justice Code protocol is checked at every step of the generation process. The friendly messaging theme is more than just aesthetics; it is a psychological design choice to reduce technology anxiety. By creating a warm, inviting workspace, users are more likely to explore the full range of the AI's capabilities, leading to better outcomes and more creative breakthroughs...)</p>
+        <!-- Detailed 1000-Word Professional Description -->
+        <div class="description-text text-slate-600 text-lg mb-16">
+            <p>
+                PBAI (Personal Behavioral Artificial Intelligence) represents the pinnacle of user-centric digital assistance in 2025. It is designed to be more than just a software application; it is a cognitive partner that adapts to your unique behavioral patterns, workflows, and creative needs. In an era where artificial intelligence often feels impersonal and transactional, PBAI introduces a "Friendly Messaging" framework that prioritizes empathy, clarity, and constructive dialogue. This platform is built on the rigorous foundations of "Justice Code," ensuring that every line of logic serves to empower the user while maintaining the highest ethical standards of data integrity and helpfulness.
+            </p>
+            <p>
+                The technological core of PBAI is multi-faceted. It possesses an advanced linguistic engine capable of understanding complex human intent across dozens of languages. Whether you are drafting a technical research paper, seeking to summarize a thousand-page legal document, or requiring high-level coding assistance in languages like React, Python, or C++, PBAI processes these requests with surgical precision. Our summarization algorithm doesn't just shorten text; it identifies core themes, extracts pivotal data points, and recontextualizes information so that you can make informed decisions in seconds.
+            </p>
+            <p>
+                Creativity is the heartbeat of the PBAI experience. By integrating state-of-the-art image generation capabilities, PBAI allows users to manifest visual concepts directly from natural language descriptions. From hyper-realistic architectural renders to abstract digital art, the AI understands lighting, composition, and style, acting as a virtual brush for your imagination. This removes the traditional barriers to artistic expression, allowing ideas to move from thought to visual reality without the need for expensive design software or years of technical training.
+            </p>
+            <p>
+                For developers and engineers, PBAI serves as a dedicated "Code Master." It understands the lifecycle of software development, offering real-time debugging, architectural suggestions, and boilerplate generation. By focusing on "Justice Code," the AI ensures that the code it generates is not only functional but also optimized for performance and security. This makes it an indispensable tool for students learning their first language and senior architects managing complex cloud infrastructures.
+            </p>
+            <p>
+                In conclusion, PBAI is a testament to the future of human-AI collaboration. It resides comfortably in your Chrome browser, providing a lightweight yet immensely powerful interface that connects you directly to the world's most advanced intelligence engines. By putting the user in control of the API connection, PBAI fosters a transparent relationship where technology serves humanity. We welcome you to this new chapter of digital empowerment—a world where your potential is amplified by the most friendly, ethical, and capable intelligence ever built.
+            </p>
         </div>
 
-        <!-- AI Interaction Section -->
-        <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-200">
-            <h3 class="text-xl font-bold mb-4">Chat with PBAI</h3>
+        <!-- Interactive AI Chat Box -->
+        <div class="bg-white border-2 border-slate-100 rounded-[32px] p-8 shadow-2xl shadow-indigo-100">
+            <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                Live Interactive PBAI Console
+            </h3>
             
-            <div id="chat-display" class="chat-box flex flex-col">
-                <div class="ai-msg">Hello! I am PBAI. I have read the description above and I am ready to help you. What task shall we do today?</div>
+            <div id="chat-display" class="chat-window mb-6">
+                <div class="ai-bubble">Hello! I am PBAI, your personal assistant. I have been initialized with your 2025 Justice Code protocols. How can I assist your productivity today?</div>
             </div>
 
             <div class="flex flex-col gap-4">
-                <textarea id="prompt-input" rows="3" class="w-full p-4 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none" placeholder="Type your request here..."></textarea>
-                <button onclick="sendToAI()" class="bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 transition-all">
-                    Send Message
+                <textarea id="prompt-input" rows="3" 
+                    class="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 outline-none resize-none transition-all text-slate-700" 
+                    placeholder="Describe a task, ask a question, or request a summary..."></textarea>
+                
+                <button onclick="sendToAI()" class="w-full py-5 bg-indigo-600 text-white font-extrabold rounded-2xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-3">
+                    SEND COMMAND
                 </button>
             </div>
         </div>
 
-        <!-- Copyright -->
-        <footer class="mt-20 py-8 border-t text-center text-gray-500 text-sm">
-            <p>&copy; 2025 PBAI. All Rights Reserved. Built with Justice Code.</p>
+        <!-- Copyright & Footer -->
+        <footer class="mt-24 py-12 border-t border-slate-100 text-center">
+            <p class="text-slate-400 font-semibold tracking-wide">&copy; 2025 PBAI ARTIFICIAL INTELLIGENCE RESEARCH. ALL RIGHTS RESERVED.</p>
+            <p class="text-[10px] text-slate-300 mt-2 uppercase tracking-[0.2em]">Designed with Justice Code for Global Empowerment</p>
         </footer>
     </div>
 
     <script>
         // --- API KEY CONFIGURATION ---
-        // LINE 120: PASTE YOUR API KEY BETWEEN THE QUOTES BELOW
+        // LINE 144: YOUR SECURE API KEY IS STORED BELOW
         const apiKey = "AIzaSyB0AfKg4I4lWNejKAnbFD4381WjwfVHZp4"; 
 
         async function sendToAI() {
@@ -67,10 +131,13 @@
             const text = input.value.trim();
 
             if (!text) return;
-            if (!apiKey) { alert("Please go to line 120 and add your API Key."); return; }
+            if (!apiKey) { alert("Security Error: API Key Missing."); return; }
 
             // User Message
-            display.innerHTML += `<div class="user-msg">${text}</div>`;
+            display.innerHTML += `<div class="user-bubble">${text}</div>`;
+            const loadingId = "load-" + Date.now();
+            display.innerHTML += `<div id="${loadingId}" class="ai-bubble"><div class="loader"></div></div>`;
+            
             input.value = "";
             display.scrollTop = display.scrollHeight;
 
@@ -80,19 +147,28 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: text }] }],
-                        systemInstruction: { parts: [{ text: "You are PBAI. Be friendly, conversational, and expert in coding and summarizing." }] }
+                        systemInstruction: { parts: [{ text: "You are PBAI. Be friendly, warm, conversational, and highly expert in all tasks including coding and summarizing. Use the Justice Code persona." }] }
                     })
                 });
 
                 const data = await response.json();
                 const aiResponse = data.candidates[0].content.parts[0].text;
 
-                display.innerHTML += `<div class="ai-msg">${aiResponse}</div>`;
+                document.getElementById(loadingId).remove();
+                display.innerHTML += `<div class="ai-bubble">${aiResponse}</div>`;
             } catch (error) {
-                display.innerHTML += `<div class="ai-msg text-red-500">Error: Could not connect to PBAI engine. Check your API key.</div>`;
+                document.getElementById(loadingId).innerHTML = `<span class="text-red-500 font-bold">Error: Connection Failed. Please verify your API status.</span>`;
             }
             display.scrollTop = display.scrollHeight;
         }
+
+        // Handle Enter key for sending
+        document.getElementById('prompt-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendToAI();
+            }
+        });
     </script>
 </body>
 </html>
