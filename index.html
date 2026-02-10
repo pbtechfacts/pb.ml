@@ -1,0 +1,2910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Tool Hub</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js CDN for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- PDF.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <!-- Tesseract.js CDN for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.0/dist/tesseract.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent body scroll, allow main content to scroll */
+        }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Specific styles for the color picker input */
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 50%;
+        }
+        /* Loading spinner for OCR */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Typing Test specific styles */
+        .typing-text-container {
+            border: 1px solid #e2e8f0; /* gray-300 */
+            background-color: #f8fafc; /* gray-50 */
+            padding: 1rem; /* p-4 */
+            border-radius: 0.5rem; /* rounded-md */
+            margin-bottom: 1rem; /* mb-4 */
+            line-height: 1.6;
+            font-size: 1.125rem; /* text-lg */
+            min-height: 150px; /* Ensure visible area */
+            overflow-y: auto;
+        }
+        .correct-char {
+            color: #16a34a; /* green-600 */
+        }
+        .incorrect-char {
+            color: #dc2626; /* red-600 */
+            background-color: #fee2e2; /* red-100 */
+            text-decoration: underline;
+        }
+        .current-char {
+            background-color: #bfdbfe; /* blue-200 */
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 font-inter text-gray-900 flex flex-col">
+
+    <header class="bg-white shadow-md p-4 flex justify-between items-center rounded-b-xl z-10">
+        <h1 class="text-3xl font-extrabold text-indigo-700">Multi-Tool Hub</h1>
+        <button id="sound-toggle"
+            class="p-2 rounded-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm"
+            aria-label="Toggle sounds">
+            <svg id="sound-on-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1V9a1 1 0 011-1h1.586l4.707-4.707C10.923 3.647 11 4.101 11 5v14c0 .899-.077 1.353-.293 1.569l-4.707-4.707z" />
+            </svg>
+            <svg id="sound-off-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.385 19.017C12.961 19.713 15.904 18.259 18 15.5V9.5A7.5 7.5 0 0010.5 2H4a1 1 0 00-1 1v10a1 1 0 001 1h1.586l4.707 4.707zM17 19.5a2 2 0 100 4 2 2 0 000-4zM12 11a4 4 0 014 4v2a4 4 0 01-4 4H8a4 4 0 01-4-4v-2a4 4 0 014-4h4z" />
+            </svg>
+        </button>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar for tool selection (now with dropdown) -->
+        <aside class="w-64 bg-white p-4 border-r border-gray-200 overflow-y-auto shadow-inner rounded-tr-xl rounded-br-xl">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Select a Tool</h2>
+            <div class="mb-4">
+                <select id="tool-select-dropdown"
+                    class="w-full p-3 border border-gray-300 rounded-md bg-white text-gray-800 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 cursor-pointer"
+                    aria-label="Select a tool from the dropdown">
+                    <option value="">-- Choose a tool --</option>
+                    <!-- Tool options will be dynamically inserted here by JavaScript -->
+                </select>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">Choose a tool from the dropdown above to use it.</p>
+        </aside>
+
+        <!-- Main content area for the active tool -->
+        <main id="main-content" class="flex-1 p-6 overflow-y-auto">
+            <div class="text-center text-gray-600 p-8">
+                <p class="text-2xl font-medium">Select a tool from the left sidebar to get started!</p>
+                <p class="text-lg mt-2">This app provides over 25 useful tools for various tasks, with advanced accessibility features and sound feedback.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Aria-live region for screen reader announcements -->
+    <div id="announcer" aria-live="polite" class="sr-only"></div>
+
+    <script>
+        // Global state and utility functions
+        let isSoundEnabled = true;
+        const announcer = document.getElementById('announcer');
+
+        // Configure PDF.js worker source
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        // Initialize Tone.js
+        window.addEventListener('load', () => {
+            Tone.start().then(() => {
+                console.log("Tone.js started successfully.");
+            }).catch(e => {
+                console.error("Error starting Tone.js:", e);
+            });
+        });
+
+        // Function to play different types of sounds
+        function playSound(type) {
+            if (!isSoundEnabled) return;
+            try {
+                const synth = new Tone.Synth().toDestination();
+                switch (type) {
+                    case 'click':
+                        synth.triggerAttackRelease("C4", "8n");
+                        break;
+                    case 'select':
+                        synth.triggerAttackRelease("E4", "8n");
+                        break;
+                    case 'success':
+                        synth.triggerAttackRelease("G4", "8n");
+                        break;
+                    case 'error':
+                        synth.triggerAttackRelease("C3", "8n");
+                        break;
+                    case 'timer-end':
+                        synth.triggerAttackRelease("C5", "1n");
+                        break;
+                    case 'dice-roll':
+                        synth.triggerAttackRelease(["C4", "E4", "G4"], "16n");
+                        break;
+                    case 'copy':
+                        synth.triggerAttackRelease("D4", "16n");
+                        break;
+                    case 'speak':
+                        synth.triggerAttackRelease("A4", "8n");
+                        break;
+                    default:
+                        synth.triggerAttackRelease("C4", "8n");
+                }
+            } catch (e) {
+                console.error("Error playing sound:", e);
+            }
+        }
+
+        // Function to announce messages for screen readers
+        function announce(message) {
+            if (announcer) {
+                announcer.textContent = message;
+            }
+        }
+
+        // Utility function to copy text to clipboard
+        function copyToClipboard(text) {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                announce("Copied to clipboard.");
+                playSound('copy');
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                announce("Failed to copy to clipboard.");
+                playSound('error');
+            }
+        }
+
+        // Utility function to share text (uses Web Share API if available, falls back to copy)
+        function shareText(text, title = 'Shared Text') {
+            if (navigator.share) {
+                navigator.share({
+                    title: title,
+                    text: text,
+                }).then(() => {
+                    announce("Text shared successfully.");
+                    playSound('success');
+                }).catch((error) => {
+                    console.error('Error sharing:', error);
+                    announce("Failed to share text.");
+                    playSound('error');
+                });
+            } else {
+                copyToClipboard(text); // Fallback to copy
+                announce("Web Share API not supported. Text copied to clipboard instead.");
+            }
+        }
+
+
+        // --- Tool Components (as functions that render HTML) ---
+
+        // 1. Character Counter
+        function renderCharacterCounter() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Character Counter</h3>
+                <textarea id="char-counter-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y"
+                    rows="6"
+                    placeholder="Type your text here..."
+                    aria-label="Text input for character counter"
+                ></textarea>
+                <p class="mt-2 text-lg text-gray-700" aria-live="polite">
+                    Characters: <span id="char-count" class="font-bold text-indigo-700">0</span>
+                </p>
+            `;
+            const textarea = container.querySelector('#char-counter-input');
+            const charCountSpan = container.querySelector('#char-count');
+
+            textarea.addEventListener('input', (e) => {
+                charCountSpan.textContent = e.target.value.length;
+                playSound('click');
+                announce(`Character count updated to ${e.target.value.length}`);
+            });
+            return container;
+        }
+
+        // 2. Word Counter
+        function renderWordCounter() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Word Counter</h3>
+                <textarea id="word-counter-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y"
+                    rows="6"
+                    placeholder="Type your text here..."
+                    aria-label="Text input for word counter"
+                ></textarea>
+                <p class="mt-2 text-lg text-gray-700" aria-live="polite">
+                    Words: <span id="word-count" class="font-bold text-indigo-700">0</span>
+                </p>
+            `;
+            const textarea = container.querySelector('#word-counter-input');
+            const wordCountSpan = container.querySelector('#word-count');
+
+            textarea.addEventListener('input', (e) => {
+                const text = e.target.value;
+                const wordCount = text.trim().split(/\s+/).filter(word => word.length > 0).length;
+                wordCountSpan.textContent = wordCount;
+                playSound('click');
+                announce(`Word count updated to ${wordCount}`);
+            });
+            return container;
+        }
+
+        // 3. Line Counter
+        function renderLineCounter() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Line Counter</h3>
+                <textarea id="line-counter-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y"
+                    rows="6"
+                    placeholder="Type your text here..."
+                    aria-label="Text input for line counter"
+                ></textarea>
+                <p class="mt-2 text-lg text-gray-700" aria-live="polite">
+                    Lines: <span id="line-count" class="font-bold text-indigo-700">0</span>
+                </p>
+            `;
+            const textarea = container.querySelector('#line-counter-input');
+            const lineCountSpan = container.querySelector('#line-count');
+
+            textarea.addEventListener('input', (e) => {
+                const text = e.target.value;
+                const lineCount = text.split(/\r\n|\r|\n/).length;
+                lineCountSpan.textContent = lineCount;
+                playSound('click');
+                announce(`Line count updated to ${lineCount}`);
+            });
+            return container;
+        }
+
+        // 4. Case Converter
+        function renderCaseConverter() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Case Converter</h3>
+                <textarea id="case-converter-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y mb-3"
+                    rows="4"
+                    placeholder="Enter text to convert..."
+                    aria-label="Input text for case conversion"
+                ></textarea>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button id="uppercase-btn"
+                        class="flex-1 min-w-[120px] p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Convert to uppercase">
+                        UPPERCASE
+                    </button>
+                    <button id="lowercase-btn"
+                        class="flex-1 min-w-[120px] p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Convert to lowercase">
+                        lowercase
+                    </button>
+                    <button id="titlecase-btn"
+                        class="flex-1 min-w-[120px] p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Convert to title case">
+                        Title Case
+                    </button>
+                </div>
+                <textarea id="case-converter-output"
+                    class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 resize-y"
+                    rows="4"
+                    readonly
+                    placeholder="Converted text will appear here..."
+                    aria-label="Converted text output"
+                ></textarea>
+                <button id="copy-converted-text-btn"
+                    class="mt-3 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 hidden"
+                    aria-label="Copy converted text to clipboard">
+                    Copy Converted Text
+                </button>
+            `;
+            const input = container.querySelector('#case-converter-input');
+            const output = container.querySelector('#case-converter-output');
+            const copyBtn = container.querySelector('#copy-converted-text-btn');
+
+            const handleConvert = (type) => {
+                let result = '';
+                switch (type) {
+                    case 'uppercase':
+                        result = input.value.toUpperCase();
+                        announce("Converted to uppercase.");
+                        break;
+                    case 'lowercase':
+                        result = input.value.toLowerCase();
+                        announce("Converted to lowercase.");
+                        break;
+                    case 'titlecase':
+                        result = input.value.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+                        announce("Converted to title case.");
+                        break;
+                }
+                output.value = result;
+                copyBtn.classList.toggle('hidden', result === '');
+                playSound('success');
+            };
+
+            input.addEventListener('input', () => playSound('click'));
+            container.querySelector('#uppercase-btn').addEventListener('click', () => handleConvert('uppercase'));
+            container.querySelector('#lowercase-btn').addEventListener('click', () => handleConvert('lowercase'));
+            container.querySelector('#titlecase-btn').addEventListener('click', () => handleConvert('titlecase'));
+            copyBtn.addEventListener('click', () => copyToClipboard(output.value));
+            return container;
+        }
+
+        // 5. Whitespace Remover
+        function renderWhitespaceRemover() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Whitespace Remover</h3>
+                <textarea id="whitespace-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y mb-3"
+                    rows="4"
+                    placeholder="Enter text with extra whitespace..."
+                    aria-label="Input text for whitespace removal"
+                ></textarea>
+                <button id="remove-whitespace-btn"
+                    class="w-full p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Remove extra whitespace">
+                    Remove Whitespace
+                </button>
+                <textarea id="whitespace-output"
+                    class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 resize-y"
+                    rows="4"
+                    readonly
+                    placeholder="Cleaned text will appear here..."
+                    aria-label="Cleaned text output"
+                ></textarea>
+                <button id="copy-cleaned-text-btn"
+                    class="mt-3 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 hidden"
+                    aria-label="Copy cleaned text to clipboard">
+                    Copy Cleaned Text
+                </button>
+            `;
+            const input = container.querySelector('#whitespace-input');
+            const output = container.querySelector('#whitespace-output');
+            const removeBtn = container.querySelector('#remove-whitespace-btn');
+            const copyBtn = container.querySelector('#copy-cleaned-text-btn');
+
+            removeBtn.addEventListener('click', () => {
+                const result = input.value.replace(/\s+/g, ' ').trim();
+                output.value = result;
+                copyBtn.classList.toggle('hidden', result === '');
+                announce("Whitespace removed.");
+                playSound('success');
+            });
+            input.addEventListener('input', () => playSound('click'));
+            copyBtn.addEventListener('click', () => copyToClipboard(output.value));
+            return container;
+        }
+
+        // 6. Text Reverser
+        function renderTextReverser() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Text Reverser</h3>
+                <textarea id="reverser-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y mb-3"
+                    rows="4"
+                    placeholder="Enter text to reverse..."
+                    aria-label="Input text for reversal"
+                ></textarea>
+                <button id="reverse-text-btn"
+                    class="w-full p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Reverse text">
+                    Reverse Text
+                </button>
+                <textarea id="reverser-output"
+                    class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 resize-y"
+                    rows="4"
+                    readonly
+                    placeholder="Reversed text will appear here..."
+                    aria-label="Reversed text output"
+                ></textarea>
+                <button id="copy-reversed-text-btn"
+                    class="mt-3 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 hidden"
+                    aria-label="Copy reversed text to clipboard">
+                    Copy Reversed Text
+                </button>
+            `;
+            const input = container.querySelector('#reverser-input');
+            const output = container.querySelector('#reverser-output');
+            const reverseBtn = container.querySelector('#reverse-text-btn');
+            const copyBtn = container.querySelector('#copy-reversed-text-btn');
+
+            reverseBtn.addEventListener('click', () => {
+                const result = input.value.split('').reverse().join('');
+                output.value = result;
+                copyBtn.classList.toggle('hidden', result === '');
+                announce("Text reversed.");
+                playSound('success');
+            });
+            input.addEventListener('input', () => playSound('click'));
+            copyBtn.addEventListener('click', () => copyToClipboard(output.value));
+            return container;
+        }
+
+        // 7. Base64 Encoder/Decoder
+        function renderBase64Converter() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Base64 Encoder/Decoder</h3>
+                <textarea id="base64-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y mb-3"
+                    rows="4"
+                    placeholder="Enter text or Base64 string..."
+                    aria-label="Input text for Base64 conversion"
+                ></textarea>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button id="base64-encode-btn"
+                        class="flex-1 min-w-[120px] p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Encode to Base64">
+                        Encode
+                    </button>
+                    <button id="base64-decode-btn"
+                        class="flex-1 min-w-[120px] p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Decode from Base64">
+                        Decode
+                    </button>
+                </div>
+                <textarea id="base64-output"
+                    class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 resize-y"
+                    rows="4"
+                    readonly
+                    placeholder="Result will appear here..."
+                    aria-label="Base64 conversion output"
+                ></textarea>
+                <button id="copy-base64-btn"
+                    class="mt-3 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 hidden"
+                    aria-label="Copy Base64 result to clipboard">
+                    Copy Result
+                </button>
+            `;
+            const input = container.querySelector('#base64-input');
+            const output = container.querySelector('#base64-output');
+            const encodeBtn = container.querySelector('#base64-encode-btn');
+            const decodeBtn = container.querySelector('#base64-decode-btn');
+            const copyBtn = container.querySelector('#copy-base64-btn');
+
+            encodeBtn.addEventListener('click', () => {
+                try {
+                    const encoded = btoa(input.value);
+                    output.value = encoded;
+                    copyBtn.classList.toggle('hidden', encoded === '');
+                    announce("Text encoded to Base64.");
+                    playSound('success');
+                } catch (e) {
+                    output.value = "Error: Invalid input for encoding.";
+                    copyBtn.classList.add('hidden');
+                    announce("Error: Invalid input for encoding.");
+                    playSound('error');
+                }
+            });
+
+            decodeBtn.addEventListener('click', () => {
+                try {
+                    const decoded = atob(input.value);
+                    output.value = decoded;
+                    copyBtn.classList.toggle('hidden', decoded === '');
+                    announce("Text decoded from Base64.");
+                    playSound('success');
+                } catch (e) {
+                    output.value = "Error: Invalid Base64 string.";
+                    copyBtn.classList.add('hidden');
+                    announce("Error: Invalid Base64 string.");
+                    playSound('error');
+                }
+            });
+            input.addEventListener('input', () => playSound('click'));
+            copyBtn.addEventListener('click', () => copyToClipboard(output.value));
+            return container;
+        }
+
+        // 8. URL Encoder/Decoder
+        function renderURLConverter() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">URL Encoder/Decoder</h3>
+                <textarea id="url-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y mb-3"
+                    rows="4"
+                    placeholder="Enter URL or text..."
+                    aria-label="Input text for URL conversion"
+                ></textarea>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button id="url-encode-btn"
+                        class="flex-1 min-w-[120px] p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Encode URL">
+                        Encode
+                    </button>
+                    <button id="url-decode-btn"
+                        class="flex-1 min-w-[120px] p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Decode URL">
+                        Decode
+                    </button>
+                </div>
+                <textarea id="url-output"
+                    class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 resize-y"
+                    rows="4"
+                    readonly
+                    placeholder="Result will appear here..."
+                    aria-label="URL conversion output"
+                ></textarea>
+                <button id="copy-url-btn"
+                    class="mt-3 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 hidden"
+                    aria-label="Copy URL result to clipboard">
+                    Copy Result
+                </button>
+            `;
+            const input = container.querySelector('#url-input');
+            const output = container.querySelector('#url-output');
+            const encodeBtn = container.querySelector('#url-encode-btn');
+            const decodeBtn = container.querySelector('#url-decode-btn');
+            const copyBtn = container.querySelector('#copy-url-btn');
+
+            encodeBtn.addEventListener('click', () => {
+                try {
+                    const encoded = encodeURIComponent(input.value);
+                    output.value = encoded;
+                    copyBtn.classList.toggle('hidden', encoded === '');
+                    announce("Text encoded to URL format.");
+                    playSound('success');
+                } catch (e) {
+                    output.value = "Error encoding URL.";
+                    copyBtn.classList.add('hidden');
+                    announce("Error encoding URL.");
+                    playSound('error');
+                }
+            });
+
+            decodeBtn.addEventListener('click', () => {
+                try {
+                    const decoded = decodeURIComponent(input.value);
+                    output.value = decoded;
+                    copyBtn.classList.toggle('hidden', decoded === '');
+                    announce("Text decoded from URL format.");
+                    playSound('success');
+                } catch (e) {
+                    output.value = "Error decoding URL: Invalid URL format.";
+                    copyBtn.classList.add('hidden');
+                    announce("Error decoding URL: Invalid URL format.");
+                    playSound('error');
+                }
+            });
+            input.addEventListener('input', () => playSound('click'));
+            copyBtn.addEventListener('click', () => copyToClipboard(output.value));
+            return container;
+        }
+
+        // 9. Markdown to HTML Converter (Simple)
+        function renderMarkdownToHTMLConverter() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Markdown to HTML Converter (Simple)</h3>
+                <textarea id="markdown-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y mb-3"
+                    rows="6"
+                    placeholder="Enter Markdown text (e.g., # Hello, **World!**)"
+                    aria-label="Input Markdown text"
+                ></textarea>
+                <button id="convert-md-to-html-btn"
+                    class="w-full p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Convert Markdown to HTML">
+                    Convert to HTML
+                </button>
+                <textarea id="html-output"
+                    class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 resize-y"
+                    rows="6"
+                    readonly
+                    placeholder="HTML output will appear here..."
+                    aria-label="HTML output"
+                ></textarea>
+                <button id="copy-html-btn"
+                    class="mt-3 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 hidden"
+                    aria-label="Copy HTML output to clipboard">
+                    Copy HTML
+                </button>
+            `;
+            const input = container.querySelector('#markdown-input');
+            const output = container.querySelector('#html-output');
+            const convertBtn = container.querySelector('#convert-md-to-html-btn');
+            const copyBtn = container.querySelector('#copy-html-btn');
+
+            convertBtn.addEventListener('click', () => {
+                let html = input.value;
+                html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+                html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+                html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+                html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+                html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+                html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
+                html = html.replace(/(<li>.*<\/li>)/gim, '<ul>$1</ul>');
+                html = html.replace(/\n/g, '<br/>');
+
+                output.value = html;
+                copyBtn.classList.toggle('hidden', html === '');
+                announce("Markdown converted to HTML.");
+                playSound('success');
+            });
+            input.addEventListener('input', () => playSound('click'));
+            copyBtn.addEventListener('click', () => copyToClipboard(output.value));
+            return container;
+        }
+
+        // 10. HTML to Markdown Converter (Simple)
+        function renderHTMLToMarkdownConverter() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">HTML to Markdown Converter (Simple)</h3>
+                <textarea id="html-to-md-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y mb-3"
+                    rows="6"
+                    placeholder="Enter HTML text (e.g., <h1>Hello</h1><strong>World!</strong>)"
+                    aria-label="Input HTML text"
+                ></textarea>
+                <button id="convert-html-to-md-btn"
+                    class="w-full p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Convert HTML to Markdown">
+                    Convert to Markdown
+                </button>
+                <textarea id="markdown-output"
+                    class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 resize-y"
+                    rows="6"
+                    readonly
+                    placeholder="Markdown output will appear here..."
+                    aria-label="Markdown output"
+                ></textarea>
+                <button id="copy-md-btn"
+                    class="mt-3 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 hidden"
+                    aria-label="Copy Markdown output to clipboard">
+                    Copy Markdown
+                </button>
+            `;
+            const input = container.querySelector('#html-to-md-input');
+            const output = container.querySelector('#markdown-output');
+            const convertBtn = container.querySelector('#convert-html-to-md-btn');
+            const copyBtn = container.querySelector('#copy-md-btn');
+
+            convertBtn.addEventListener('click', () => {
+                let markdown = input.value;
+                markdown = markdown.replace(/<h1>(.*?)<\/h1>/gim, '# $1');
+                markdown = markdown.replace(/<h2>(.*?)<\/h2>/gim, '## $1');
+                markdown = markdown.replace(/<h3>(.*?)<\/h3>/gim, '### $1');
+                markdown = markdown.replace(/<strong>(.*?)<\/strong>/gim, '**$1**');
+                markdown = markdown.replace(/<em>(.*?)<\/em>/gim, '*$1*');
+                markdown = markdown.replace(/<ul><li>(.*?)<\/li><\/ul>/gim, '- $1');
+                markdown = markdown.replace(/<br\/>/gim, '\n');
+                markdown = markdown.replace(/<br>/gim, '\n');
+
+                output.value = markdown;
+                copyBtn.classList.toggle('hidden', markdown === '');
+                announce("HTML converted to Markdown.");
+                playSound('success');
+            });
+            input.addEventListener('input', () => playSound('click'));
+            copyBtn.addEventListener('click', () => copyToClipboard(output.value));
+            return container;
+        }
+
+        // 11. Simple Calculator
+        function renderSimpleCalculator() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200 max-w-sm mx-auto";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Simple Calculator</h3>
+                <input type="text" id="calc-expression"
+                    class="w-full p-3 mb-2 border border-gray-300 rounded-md text-right text-2xl font-mono bg-gray-100 focus:outline-none"
+                    value=""
+                    readonly
+                    placeholder="0"
+                    aria-label="Calculator expression input"
+                />
+                <input type="text" id="calc-result"
+                    class="w-full p-3 mb-4 border border-gray-300 rounded-md text-right text-xl font-mono bg-gray-50 focus:outline-none"
+                    value=""
+                    readonly
+                    placeholder="Result"
+                    aria-label="Calculator result output"
+                />
+                <div class="grid grid-cols-4 gap-2" id="calculator-buttons">
+                    <!-- Buttons will be generated here -->
+                </div>
+            `;
+
+            const expressionInput = container.querySelector('#calc-expression');
+            const resultInput = container.querySelector('#calc-result');
+            const buttonsContainer = container.querySelector('#calculator-buttons');
+
+            let currentExpression = '';
+            let currentResult = '';
+
+            const updateDisplay = () => {
+                expressionInput.value = currentExpression;
+                resultInput.value = currentResult;
+            };
+
+            const handleButtonClick = (value) => {
+                playSound('click');
+                if (value === 'C') {
+                    currentExpression = '';
+                    currentResult = '';
+                    announce("Calculator cleared.");
+                } else if (value === '=') {
+                    try {
+                        const parts = currentExpression.match(/(\d+\.?\d*)|([+\-*/])/g);
+                        if (!parts || parts.length === 0) {
+                            throw new Error("Invalid expression");
+                        }
+
+                        let res = parseFloat(parts[0]);
+                        for (let i = 1; i < parts.length; i += 2) {
+                            const operator = parts[i];
+                            const nextNum = parseFloat(parts[i + 1]);
+
+                            if (isNaN(res) || isNaN(nextNum)) {
+                                throw new Error("Invalid number in expression");
+                            }
+
+                            switch (operator) {
+                                case '+':
+                                    res += nextNum;
+                                    break;
+                                case '-':
+                                    res -= nextNum;
+                                    break;
+                                case '*':
+                                    res *= nextNum;
+                                    break;
+                                case '/':
+                                    if (nextNum === 0) throw new Error("Division by zero");
+                                    res /= nextNum;
+                                    break;
+                                default:
+                                    throw new Error("Unknown operator");
+                            }
+                        }
+                        currentResult = res.toString();
+                        announce(`Result is ${currentResult}`);
+                        playSound('success');
+                    } catch (e) {
+                        currentResult = 'Error';
+                        announce(`Calculation error: ${e.message || 'Invalid expression'}.`);
+                        playSound('error');
+                    }
+                } else {
+                    const lastChar = currentExpression.slice(-1);
+                    const isLastCharOperator = ['+', '-', '*', '/'].includes(lastChar);
+                    const isNewCharOperator = ['+', '-', '*', '/'].includes(value);
+
+                    if (value === '.' && currentExpression.split(/[\+\-\*\/]/).pop().includes('.')) {
+                        return;
+                    }
+                    if (isNewCharOperator && isLastCharOperator) {
+                        currentExpression = currentExpression.slice(0, -1) + value;
+                    } else {
+                        currentExpression += value;
+                    }
+                    announce(`Added ${value} to expression.`);
+                }
+                updateDisplay();
+            };
+
+            const buttons = [
+                '7', '8', '9', '/',
+                '4', '5', '6', '*',
+                '1', '2', '3', '-',
+                '0', '.', '=', '+',
+                'C'
+            ];
+
+            buttons.forEach(btnText => {
+                const button = document.createElement('button');
+                button.textContent = btnText;
+                button.className = `p-4 rounded-md transition-all duration-200 text-xl font-semibold ${
+                    btnText === '=' ? 'bg-indigo-500 text-white hover:bg-indigo-600' :
+                    btnText === 'C' ? 'col-span-4 bg-red-500 text-white hover:bg-red-600' :
+                    'bg-gray-200 hover:bg-gray-300'
+                }`;
+                button.setAttribute('aria-label',
+                    btnText === '/' ? 'divide' :
+                    btnText === '*' ? 'multiply' :
+                    btnText === '-' ? 'subtract' :
+                    btnText === '+' ? 'add' :
+                    btnText === '=' ? 'equals' :
+                    btnText === '.' ? 'decimal point' :
+                    btnText === 'C' ? 'Clear calculator' :
+                    btnText
+                );
+                button.addEventListener('click', () => handleButtonClick(btnText));
+                buttonsContainer.appendChild(button);
+            });
+
+            return container;
+        }
+
+        // 12. Unit Converter (Length, Weight, Temperature)
+        function renderUnitConverter() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Unit Converter</h3>
+                <div class="mb-4">
+                    <label for="category-select" class="block text-gray-700 text-sm font-bold mb-2">Category:</label>
+                    <select id="category-select"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        aria-label="Select unit category">
+                        <option value="length">Length</option>
+                        <option value="weight">Weight</option>
+                        <option value="temperature">Temperature</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="value-input" class="block text-gray-700 text-sm font-bold mb-2">Value:</label>
+                    <input id="value-input" type="number"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        placeholder="Enter value"
+                        aria-label="Value to convert"
+                    />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="from-unit-select" class="block text-gray-700 text-sm font-bold mb-2">From Unit:</label>
+                        <select id="from-unit-select"
+                            class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                            aria-label="Select unit to convert from">
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label for="to-unit-select" class="block text-gray-700 text-sm font-bold mb-2">To Unit:</label>
+                        <select id="to-unit-select"
+                            class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                            aria-label="Select unit to convert to">
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+                </div>
+                <p class="mt-4 text-lg text-gray-700" aria-live="polite">
+                    Result: <span id="unit-converter-result" class="font-bold text-indigo-700"></span>
+                </p>
+            `;
+
+            const categorySelect = container.querySelector('#category-select');
+            const valueInput = container.querySelector('#value-input');
+            const fromUnitSelect = container.querySelector('#from-unit-select');
+            const toUnitSelect = container.querySelector('#to-unit-select');
+            const resultSpan = container.querySelector('#unit-converter-result');
+
+            const units = {
+                length: {
+                    meters: 1, feet: 3.28084, inches: 39.3701, kilometers: 0.001, miles: 0.000621371, centimeters: 100
+                },
+                weight: {
+                    kilograms: 1, pounds: 2.20462, ounces: 35.274, grams: 1000, milligrams: 1000000
+                },
+                temperature: {
+                    celsius: (val) => val,
+                    fahrenheit: (val) => (val - 32) * 5 / 9,
+                    kelvin: (val) => val - 273.15
+                }
+            };
+
+            const populateUnitOptions = (cat, fromSel, toSel) => {
+                fromSel.innerHTML = '';
+                toSel.innerHTML = '';
+                Object.keys(units[cat]).forEach(unit => {
+                    const optionFrom = document.createElement('option');
+                    optionFrom.value = unit;
+                    optionFrom.textContent = unit.charAt(0).toUpperCase() + unit.slice(1);
+                    fromSel.appendChild(optionFrom);
+
+                    const optionTo = document.createElement('option');
+                    optionTo.value = unit;
+                    optionTo.textContent = unit.charAt(0).toUpperCase() + unit.slice(1);
+                    toSel.appendChild(optionTo);
+                });
+                // Set default selections
+                if (cat === 'length') {
+                    fromSel.value = 'meters';
+                    toSel.value = 'feet';
+                } else if (cat === 'weight') {
+                    fromSel.value = 'kilograms';
+                    toSel.value = 'pounds';
+                } else if (cat === 'temperature') {
+                    fromSel.value = 'celsius';
+                    toSel.value = 'fahrenheit';
+                }
+            };
+
+            const convert = () => {
+                const numValue = parseFloat(valueInput.value);
+                const currentCategory = categorySelect.value;
+                const currentFromUnit = fromUnitSelect.value;
+                const currentToUnit = toUnitSelect.value;
+
+                if (isNaN(numValue)) {
+                    resultSpan.textContent = 'Invalid input';
+                    announce("Invalid input for conversion.");
+                    playSound('error');
+                    return;
+                }
+
+                let converted = 'Error';
+                if (currentCategory === 'temperature') {
+                    let baseCelsius = numValue;
+                    if (currentFromUnit === 'fahrenheit') {
+                        baseCelsius = units.temperature.fahrenheit(numValue);
+                    } else if (currentFromUnit === 'kelvin') {
+                        baseCelsius = units.temperature.kelvin(numValue);
+                    }
+
+                    if (currentToUnit === 'celsius') {
+                        converted = baseCelsius;
+                    } else if (currentToUnit === 'fahrenheit') {
+                        converted = (baseCelsius * 9 / 5) + 32;
+                    } else if (currentToUnit === 'kelvin') {
+                        converted = baseCelsius + 273.15;
+                    }
+                } else {
+                    const baseValue = numValue / units[currentCategory][currentFromUnit];
+                    converted = baseValue * units[currentCategory][currentToUnit];
+                }
+
+                resultSpan.textContent = converted.toFixed(4);
+                announce(`${numValue} ${currentFromUnit} is ${converted.toFixed(4)} ${currentToUnit}.`);
+                playSound('success');
+            };
+
+            categorySelect.addEventListener('change', (e) => {
+                populateUnitOptions(e.target.value, fromUnitSelect, toUnitSelect);
+                convert(); // Recalculate on category change
+                playSound('click');
+                announce(`Category changed to ${e.target.value}.`);
+            });
+            valueInput.addEventListener('input', () => { convert(); playSound('click'); });
+            fromUnitSelect.addEventListener('change', () => { convert(); playSound('click'); });
+            toUnitSelect.addEventListener('change', () => { convert(); playSound('click'); });
+
+            // Initial population
+            populateUnitOptions(categorySelect.value, fromUnitSelect, toUnitSelect);
+            return container;
+        }
+
+        // 13. Percentage Calculator
+        function renderPercentageCalculator() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Percentage Calculator</h3>
+                <div class="mb-4">
+                    <label for="perc-num1-input" class="block text-gray-700 text-sm font-bold mb-2">Number 1:</label>
+                    <input id="perc-num1-input" type="number"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        placeholder="Enter first number"
+                        aria-label="First number for percentage calculation"
+                    />
+                </div>
+                <div class="mb-4">
+                    <label for="perc-num2-input" class="block text-gray-700 text-sm font-bold mb-2">Number 2:</label>
+                    <input id="perc-num2-input" type="number"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        placeholder="Enter second number"
+                        aria-label="Second number for percentage calculation"
+                    />
+                </div>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button id="percent-of-btn"
+                        class="flex-1 min-w-[150px] p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Calculate X percent of Y">
+                        What is X% of Y?
+                    </button>
+                    <button id="is-what-percent-btn"
+                        class="flex-1 min-w-[150px] p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Calculate X is what percent of Y">
+                        X is what % of Y?
+                    </button>
+                    <button id="percent-change-btn"
+                        class="flex-1 min-w-[150px] p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Calculate percentage change from X to Y">
+                        Percentage Change
+                    </button>
+                </div>
+                <p class="mt-4 text-lg text-gray-700" aria-live="polite">
+                    Result: <span id="percentage-result" class="font-bold text-indigo-700"></span>
+                </p>
+            `;
+            const num1Input = container.querySelector('#perc-num1-input');
+            const num2Input = container.querySelector('#perc-num2-input');
+            const resultSpan = container.querySelector('#percentage-result');
+
+            const calculatePercentage = (type) => {
+                const n1 = parseFloat(num1Input.value);
+                const n2 = parseFloat(num2Input.value);
+
+                if (isNaN(n1) || isNaN(n2)) {
+                    resultSpan.textContent = 'Invalid input';
+                    announce("Invalid input for percentage calculation.");
+                    playSound('error');
+                    return;
+                }
+
+                let calculatedResult = '';
+                switch (type) {
+                    case 'percentOf':
+                        calculatedResult = (n1 / 100) * n2;
+                        announce(`${n1} percent of ${n2} is ${calculatedResult}.`);
+                        break;
+                    case 'isWhatPercent':
+                        if (n2 === 0) {
+                            calculatedResult = 'Cannot divide by zero';
+                            announce("Cannot divide by zero for percentage calculation.");
+                            playSound('error');
+                        } else {
+                            calculatedResult = (n1 / n2) * 100;
+                            announce(`${n1} is ${calculatedResult} percent of ${n2}.`);
+                        }
+                        break;
+                    case 'percentChange':
+                        if (n1 === 0) {
+                            calculatedResult = 'Cannot calculate percentage change from zero';
+                            announce("Cannot calculate percentage change from zero.");
+                            playSound('error');
+                        } else {
+                            calculatedResult = ((n2 - n1) / n1) * 100;
+                            announce(`Percentage change from ${n1} to ${n2} is ${calculatedResult} percent.`);
+                        }
+                        break;
+                }
+                resultSpan.textContent = typeof calculatedResult === 'number' ? calculatedResult.toFixed(2) : calculatedResult;
+                playSound('success');
+            };
+
+            num1Input.addEventListener('input', () => playSound('click'));
+            num2Input.addEventListener('input', () => playSound('click'));
+            container.querySelector('#percent-of-btn').addEventListener('click', () => calculatePercentage('percentOf'));
+            container.querySelector('#is-what-percent-btn').addEventListener('click', () => calculatePercentage('isWhatPercent'));
+            container.querySelector('#percent-change-btn').addEventListener('click', () => calculatePercentage('percentChange'));
+            return container;
+        }
+
+        // 14. Age Calculator
+        function renderAgeCalculator() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Age Calculator</h3>
+                <div class="mb-4">
+                    <label for="birthdate-input" class="block text-gray-700 text-sm font-bold mb-2">Your Birth Date:</label>
+                    <input id="birthdate-input" type="date"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        aria-label="Enter your birth date"
+                    />
+                </div>
+                <button id="calculate-age-btn"
+                    class="w-full p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Calculate age">
+                    Calculate Age
+                </button>
+                <p class="mt-4 text-lg text-gray-700" aria-live="polite">
+                    Your Age: <span id="age-result" class="font-bold text-indigo-700"></span>
+                </p>
+            `;
+            const birthDateInput = container.querySelector('#birthdate-input');
+            const ageResultSpan = container.querySelector('#age-result');
+            const calculateBtn = container.querySelector('#calculate-age-btn');
+
+            calculateBtn.addEventListener('click', () => {
+                if (!birthDateInput.value) {
+                    ageResultSpan.textContent = 'Please enter a birth date';
+                    announce("Please enter a birth date.");
+                    playSound('error');
+                    return;
+                }
+
+                const dob = new Date(birthDateInput.value);
+                const today = new Date();
+
+                if (isNaN(dob.getTime())) {
+                    ageResultSpan.textContent = 'Invalid Date';
+                    announce("Invalid birth date entered.");
+                    playSound('error');
+                    return;
+                }
+
+                let years = today.getFullYear() - dob.getFullYear();
+                let months = today.getMonth() - dob.getMonth();
+                let days = today.getDate() - dob.getDate();
+
+                if (days < 0) {
+                    months--;
+                    days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+                }
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+
+                const ageString = `${years} years, ${months} months, and ${days} days`;
+                ageResultSpan.textContent = ageString;
+                announce(`Calculated age: ${ageString}.`);
+                playSound('success');
+            });
+            birthDateInput.addEventListener('input', () => playSound('click'));
+            return container;
+        }
+
+        // 15. Random Number Generator
+        function renderRandomNumberGenerator() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Random Number Generator</h3>
+                <div class="flex gap-4 mb-4">
+                    <div class="flex-1">
+                        <label for="min-input" class="block text-gray-700 text-sm font-bold mb-2">Min:</label>
+                        <input id="min-input" type="number" value="1"
+                            class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                            aria-label="Minimum value for random number"
+                        />
+                    </div>
+                    <div class="flex-1">
+                        <label for="max-input" class="block text-gray-700 text-sm font-bold mb-2">Max:</label>
+                        <input id="max-input" type="number" value="100"
+                            class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                            aria-label="Maximum value for random number"
+                        />
+                    </div>
+                </div>
+                <button id="generate-random-btn"
+                    class="w-full p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Generate random number">
+                    Generate Number
+                </button>
+                <p class="mt-4 text-lg text-gray-700" aria-live="polite">
+                    Generated Number: <span id="random-number-result" class="font-bold text-indigo-700"></span>
+                </p>
+            `;
+            const minInput = container.querySelector('#min-input');
+            const maxInput = container.querySelector('#max-input');
+            const resultSpan = container.querySelector('#random-number-result');
+            const generateBtn = container.querySelector('#generate-random-btn');
+
+            generateBtn.addEventListener('click', () => {
+                const numMin = parseInt(minInput.value, 10);
+                const numMax = parseInt(maxInput.value, 10);
+
+                if (isNaN(numMin) || isNaN(numMax) || numMin > numMax) {
+                    resultSpan.textContent = 'Invalid range';
+                    announce("Invalid range for random number generation.");
+                    playSound('error');
+                    return;
+                }
+
+                const random = Math.floor(Math.random() * (numMax - numMin + 1)) + numMin;
+                resultSpan.textContent = random;
+                announce(`Generated random number: ${random}`);
+                playSound('success');
+            });
+            minInput.addEventListener('input', () => playSound('click'));
+            maxInput.addEventListener('input', () => playSound('click'));
+            return container;
+        }
+
+        // 16. Password Generator
+        function renderPasswordGenerator() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Password Generator</h3>
+                <div class="mb-4">
+                    <label for="length-input" class="block text-gray-700 text-sm font-bold mb-2">Password Length: <span id="password-length-display">12</span></label>
+                    <input id="length-input" type="range" min="6" max="32" value="12"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        aria-label="Password length slider"
+                    />
+                </div>
+                <div class="mb-4 space-y-2">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="include-uppercase" checked
+                            class="form-checkbox h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500"
+                            aria-label="Include uppercase letters"
+                        />
+                        <span class="ml-2 text-gray-700">Include Uppercase Letters (A-Z)</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="include-lowercase" checked
+                            class="form-checkbox h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500"
+                            aria-label="Include lowercase letters"
+                        />
+                        <span class="ml-2 text-gray-700">Include Lowercase Letters (a-z)</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="include-numbers" checked
+                            class="form-checkbox h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500"
+                            aria-label="Include numbers"
+                        />
+                        <span class="ml-2 text-gray-700">Include Numbers (0-9)</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="include-symbols" checked
+                            class="form-checkbox h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500"
+                            aria-label="Include symbols"
+                        />
+                        <span class="ml-2 text-gray-700">Include Symbols (!@#$)</span>
+                    </label>
+                </div>
+                <button id="generate-password-btn"
+                    class="w-full p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Generate password">
+                    Generate Password
+                </button>
+                <div class="mt-4 p-3 bg-gray-100 border border-gray-300 rounded-md break-words" aria-live="polite">
+                    <p class="text-lg text-gray-700">Generated Password:</p>
+                    <p id="password-result" class="font-bold text-indigo-700 text-xl"></p>
+                </div>
+                <button id="copy-password-btn"
+                    class="mt-3 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 hidden"
+                    aria-label="Copy generated password to clipboard">
+                    Copy Password
+                </button>
+            `;
+            const lengthInput = container.querySelector('#length-input');
+            const lengthDisplay = container.querySelector('#password-length-display');
+            const includeUppercase = container.querySelector('#include-uppercase');
+            const includeLowercase = container.querySelector('#include-lowercase');
+            const includeNumbers = container.querySelector('#include-numbers');
+            const includeSymbols = container.querySelector('#include-symbols');
+            const passwordResult = container.querySelector('#password-result');
+            const generateBtn = container.querySelector('#generate-password-btn');
+            const copyBtn = container.querySelector('#copy-password-btn');
+
+            lengthInput.addEventListener('input', (e) => {
+                lengthDisplay.textContent = e.target.value;
+                playSound('click');
+            });
+
+            generateBtn.addEventListener('click', () => {
+                let charset = '';
+                if (includeUppercase.checked) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                if (includeLowercase.checked) charset += 'abcdefghijklmnopqrstuvwxyz';
+                if (includeNumbers.checked) charset += '0123456789';
+                if (includeSymbols.checked) charset += '!@#$%^&*()_+~`|}{[]:;?><,./-=';
+
+                if (charset.length === 0) {
+                    passwordResult.textContent = 'Select at least one option';
+                    copyBtn.classList.add('hidden');
+                    announce("Please select at least one character type for password generation.");
+                    playSound('error');
+                    return;
+                }
+
+                let generatedPassword = '';
+                const length = parseInt(lengthInput.value, 10);
+                for (let i = 0; i < length; i++) {
+                    const randomIndex = Math.floor(Math.random() * charset.length);
+                    generatedPassword += charset[randomIndex];
+                }
+                passwordResult.textContent = generatedPassword;
+                copyBtn.classList.toggle('hidden', generatedPassword === 'Select at least one option' || generatedPassword === '');
+                announce(`Generated password: ${generatedPassword}`);
+                playSound('success');
+            });
+
+            [includeUppercase, includeLowercase, includeNumbers, includeSymbols].forEach(checkbox => {
+                checkbox.addEventListener('change', () => playSound('click'));
+            });
+            copyBtn.addEventListener('click', () => copyToClipboard(passwordResult.textContent));
+            return container;
+        }
+
+        // 17. Color Picker (Simple Hex/RGB Display)
+        function renderColorPicker() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Color Picker</h3>
+                <div class="flex flex-col items-center mb-4">
+                    <input type="color" id="color-picker-input" value="#000000"
+                        class="w-24 h-24 rounded-full border-4 border-indigo-500 cursor-pointer"
+                        aria-label="Color picker input"
+                    />
+                    <p class="mt-4 text-lg font-semibold text-gray-700">Selected Color:</p>
+                    <div id="color-preview"
+                        class="w-full h-12 rounded-md border border-gray-300 mt-2"
+                        style="background-color: #000000;"
+                        aria-label="Preview of selected color"
+                    ></div>
+                    <div class="mt-4 text-center" aria-live="polite">
+                        <p class="text-md text-gray-700">HEX: <span id="hex-color" class="font-bold text-indigo-700">#000000</span></p>
+                        <p class="text-md text-gray-700">RGB: <span id="rgb-color" class="font-bold text-indigo-700">rgb(0, 0, 0)</span></p>
+                    </div>
+                </div>
+                <button id="copy-hex-btn"
+                    class="w-full p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 mt-3"
+                    aria-label="Copy HEX color code to clipboard">
+                    Copy HEX
+                </button>
+                <button id="copy-rgb-btn"
+                    class="w-full p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 mt-2"
+                    aria-label="Copy RGB color code to clipboard">
+                    Copy RGB
+                </button>
+            `;
+            const colorInput = container.querySelector('#color-picker-input');
+            const colorPreview = container.querySelector('#color-preview');
+            const hexSpan = container.querySelector('#hex-color');
+            const rgbSpan = container.querySelector('#rgb-color');
+            const copyHexBtn = container.querySelector('#copy-hex-btn');
+            const copyRgbBtn = container.querySelector('#copy-rgb-btn');
+
+            const hexToRgb = (hex) => {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return `rgb(${r}, ${g}, ${b})`;
+            };
+
+            colorInput.addEventListener('input', (e) => {
+                const newColor = e.target.value;
+                colorPreview.style.backgroundColor = newColor;
+                hexSpan.textContent = newColor.toUpperCase();
+                rgbSpan.textContent = hexToRgb(newColor);
+                announce(`Color changed to ${newColor}`);
+                playSound('click');
+            });
+
+            copyHexBtn.addEventListener('click', () => copyToClipboard(hexSpan.textContent));
+            copyRgbBtn.addEventListener('click', () => copyToClipboard(rgbSpan.textContent));
+            return container;
+        }
+
+        // 18. QR Code Generator (Simple SVG)
+        function renderQRCodeGenerator() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">QR Code Generator</h3>
+                <textarea id="qr-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y mb-3"
+                    rows="4"
+                    placeholder="Enter text or URL to generate QR code..."
+                    aria-label="Input text for QR code generation"
+                ></textarea>
+                <button id="generate-qr-btn"
+                    class="w-full p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Generate QR code">
+                    Generate QR Code
+                </button>
+                <div id="qr-code-display" class="mt-4 flex justify-center items-center p-4 border border-gray-300 rounded-md bg-gray-50" aria-live="polite">
+                    <p class="text-gray-500">QR Code will appear here</p>
+                </div>
+                <button id="copy-qr-svg-btn"
+                    class="mt-3 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 hidden"
+                    aria-label="Copy QR code SVG to clipboard">
+                    Copy QR Code SVG
+                </button>
+            `;
+            const input = container.querySelector('#qr-input');
+            const display = container.querySelector('#qr-code-display');
+            const generateBtn = container.querySelector('#generate-qr-btn');
+            const copyBtn = container.querySelector('#copy-qr-svg-btn');
+
+            const generateQRCodeSvg = (data) => {
+                if (!data) return '';
+                const size = 200;
+                const squareSize = 10;
+                const numSquares = size / squareSize;
+                let svgContent = `<rect x="0" y="0" width="${size}" height="${size}" fill="#fff"/>`;
+
+                for (let i = 0; i < data.length; i++) {
+                    const charCode = data.charCodeAt(i);
+                    const x = (charCode % numSquares) * squareSize;
+                    const y = (Math.floor(charCode / numSquares) % numSquares) * squareSize;
+                    svgContent += `<rect x="${x}" y="${y}" width="${squareSize}" height="${squareSize}" fill="#000"/>`;
+                }
+                return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">${svgContent}</svg>`;
+            };
+
+            generateBtn.addEventListener('click', () => {
+                const svg = generateQRCodeSvg(input.value);
+                if (svg) {
+                    display.innerHTML = svg;
+                    copyBtn.classList.remove('hidden');
+                    announce("QR Code generated.");
+                    playSound('success');
+                } else {
+                    display.innerHTML = '<p class="text-gray-500">QR Code will appear here</p>';
+                    copyBtn.classList.add('hidden');
+                    announce("Please enter text to generate QR code.");
+                    playSound('error');
+                }
+            });
+            input.addEventListener('input', () => playSound('click'));
+            copyBtn.addEventListener('click', () => copyToClipboard(display.innerHTML));
+            return container;
+        }
+
+        // 19. Stopwatch
+        function renderStopwatch() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200 text-center";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Stopwatch</h3>
+                <div id="stopwatch-display" class="text-5xl font-mono text-indigo-700 mb-6 p-4 bg-gray-100 rounded-md" aria-live="polite" aria-atomic="true">
+                    00:00.00
+                </div>
+                <div class="flex justify-center gap-4">
+                    <button id="stopwatch-start-btn"
+                        class="p-3 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
+                        aria-label="Start stopwatch">
+                        Start
+                    </button>
+                    <button id="stopwatch-stop-btn"
+                        class="p-3 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200"
+                        aria-label="Stop stopwatch">
+                        Stop
+                    </button>
+                    <button id="stopwatch-reset-btn"
+                        class="p-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-200"
+                        aria-label="Reset stopwatch">
+                        Reset
+                    </button>
+                </div>
+            `;
+            const display = container.querySelector('#stopwatch-display');
+            const startBtn = container.querySelector('#stopwatch-start-btn');
+            const stopBtn = container.querySelector('#stopwatch-stop-btn');
+            const resetBtn = container.querySelector('#stopwatch-reset-btn');
+
+            let isRunning = false;
+            let time = 0; // milliseconds
+            let timerInterval = null;
+
+            const formatTime = (ms) => {
+                const minutes = Math.floor(ms / 60000);
+                const seconds = Math.floor((ms % 60000) / 1000);
+                const centiseconds = Math.floor((ms % 1000) / 10);
+                return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+            };
+
+            const updateDisplay = () => {
+                display.textContent = formatTime(time);
+            };
+
+            startBtn.addEventListener('click', () => {
+                if (!isRunning) {
+                    isRunning = true;
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    timerInterval = setInterval(() => {
+                        time += 10;
+                        updateDisplay();
+                    }, 10);
+                    announce("Stopwatch started.");
+                    playSound('click');
+                }
+            });
+
+            stopBtn.addEventListener('click', () => {
+                if (isRunning) {
+                    isRunning = false;
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    clearInterval(timerInterval);
+                    announce("Stopwatch stopped.");
+                    playSound('click');
+                }
+            });
+
+            resetBtn.addEventListener('click', () => {
+                isRunning = false;
+                time = 0;
+                clearInterval(timerInterval);
+                startBtn.disabled = false;
+                stopBtn.disabled = false; // Enable stop button after reset if it was disabled by start
+                updateDisplay();
+                announce("Stopwatch reset.");
+                playSound('click');
+            });
+
+            updateDisplay(); // Initial display
+            return container;
+        }
+
+        // 20. Timer
+        function renderTimer() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200 text-center";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Timer</h3>
+                <div class="flex justify-center items-center gap-2 mb-4">
+                    <input type="number" id="timer-minutes-input" min="0" max="59" value="0"
+                        class="w-20 p-2 border border-gray-300 rounded-md text-center text-xl font-mono focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        placeholder="MM"
+                        aria-label="Minutes for timer"
+                    />
+                    <span class="text-2xl font-bold">:</span>
+                    <input type="number" id="timer-seconds-input" min="0" max="59" value="0"
+                        class="w-20 p-2 border border-gray-300 rounded-md text-center text-xl font-mono focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        placeholder="SS"
+                        aria-label="Seconds for timer"
+                    />
+                </div>
+                <div id="timer-display" class="text-5xl font-mono text-indigo-700 mb-6 p-4 bg-gray-100 rounded-md" aria-live="polite" aria-atomic="true">
+                    00:00
+                </div>
+                <div class="flex justify-center gap-2 flex-wrap">
+                    <button id="timer-start-btn"
+                        class="p-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
+                        aria-label="Start timer">
+                        Start
+                    </button>
+                    <button id="timer-pause-btn"
+                        class="p-3 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-200 hidden"
+                        aria-label="Pause timer">
+                        Pause
+                    </button>
+                    <button id="timer-resume-btn"
+                        class="p-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 hidden"
+                        aria-label="Resume timer">
+                        Resume
+                    </button>
+                    <button id="timer-reset-btn"
+                        class="p-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-200"
+                        aria-label="Reset timer">
+                        Reset
+                    </button>
+                </div>
+            `;
+            const minutesInput = container.querySelector('#timer-minutes-input');
+            const secondsInput = container.querySelector('#timer-seconds-input');
+            const display = container.querySelector('#timer-display');
+            const startBtn = container.querySelector('#timer-start-btn');
+            const pauseBtn = container.querySelector('#timer-pause-btn');
+            const resumeBtn = container.querySelector('#timer-resume-btn');
+            const resetBtn = container.querySelector('#timer-reset-btn');
+
+            let totalSeconds = 0;
+            let timerInterval = null;
+            let isRunning = false;
+            let initialTotalSeconds = 0;
+
+            const updateDisplay = () => {
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                display.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            };
+
+            const startTimer = () => {
+                if (isRunning) return;
+                const inputMinutes = parseInt(minutesInput.value, 10) || 0;
+                const inputSeconds = parseInt(secondsInput.value, 10) || 0;
+                const newTotalSeconds = inputMinutes * 60 + inputSeconds;
+
+                if (newTotalSeconds <= 0) {
+                    announce("Please set a valid time for the timer.");
+                    playSound('error');
+                    return;
+                }
+
+                totalSeconds = newTotalSeconds;
+                initialTotalSeconds = newTotalSeconds; // Store for reset
+                isRunning = true;
+                minutesInput.disabled = true;
+                secondsInput.disabled = true;
+                startBtn.classList.add('hidden');
+                pauseBtn.classList.remove('hidden');
+                resumeBtn.classList.add('hidden');
+                updateDisplay();
+                announce(`Timer started for ${inputMinutes} minutes and ${inputSeconds} seconds.`);
+                playSound('click');
+
+                timerInterval = setInterval(() => {
+                    totalSeconds--;
+                    updateDisplay();
+                    if (totalSeconds <= 0) {
+                        clearInterval(timerInterval);
+                        isRunning = false;
+                        minutesInput.disabled = false;
+                        secondsInput.disabled = false;
+                        startBtn.classList.remove('hidden');
+                        pauseBtn.classList.add('hidden');
+                        resumeBtn.classList.add('hidden');
+                        announce("Timer finished!");
+                        playSound('timer-end');
+                    }
+                }, 1000);
+            };
+
+            const pauseTimer = () => {
+                if (!isRunning) return;
+                isRunning = false;
+                clearInterval(timerInterval);
+                pauseBtn.classList.add('hidden');
+                resumeBtn.classList.remove('hidden');
+                announce("Timer paused.");
+                playSound('click');
+            };
+
+            const resumeTimer = () => {
+                if (isRunning || totalSeconds <= 0) return;
+                isRunning = true;
+                resumeBtn.classList.add('hidden');
+                pauseBtn.classList.remove('hidden');
+                announce("Timer resumed.");
+                playSound('click');
+                timerInterval = setInterval(() => {
+                    totalSeconds--;
+                    updateDisplay();
+                    if (totalSeconds <= 0) {
+                        clearInterval(timerInterval);
+                        isRunning = false;
+                        minutesInput.disabled = false;
+                        secondsInput.disabled = false;
+                        startBtn.classList.remove('hidden');
+                        pauseBtn.classList.add('hidden');
+                        resumeBtn.classList.add('hidden');
+                        announce("Timer finished!");
+                        playSound('timer-end');
+                    }
+                }, 1000);
+            };
+
+            const resetTimer = () => {
+                clearInterval(timerInterval);
+                isRunning = false;
+                totalSeconds = initialTotalSeconds; // Reset to the last set time
+                minutesInput.disabled = false;
+                secondsInput.disabled = false;
+                startBtn.classList.remove('hidden');
+                pauseBtn.classList.add('hidden');
+                resumeBtn.classList.add('hidden');
+                updateDisplay();
+                announce("Timer reset.");
+                playSound('click');
+            };
+
+            minutesInput.addEventListener('input', () => playSound('click'));
+            secondsInput.addEventListener('input', () => playSound('click'));
+            startBtn.addEventListener('click', startTimer);
+            pauseBtn.addEventListener('click', pauseTimer);
+            resumeBtn.addEventListener('click', resumeTimer);
+            resetBtn.addEventListener('click', resetTimer);
+
+            updateDisplay(); // Initial display
+            return container;
+        }
+
+        // 21. Date Difference Calculator
+        function renderDateDifferenceCalculator() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Date Difference Calculator</h3>
+                <div class="mb-4">
+                    <label for="start-date-input" class="block text-gray-700 text-sm font-bold mb-2">Start Date:</label>
+                    <input id="start-date-input" type="date"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        aria-label="Select start date"
+                    />
+                </div>
+                <div class="mb-4">
+                    <label for="end-date-input" class="block text-gray-700 text-sm font-bold mb-2">End Date:</label>
+                    <input id="end-date-input" type="date"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        aria-label="Select end date"
+                    />
+                </div>
+                <button id="calculate-date-diff-btn"
+                    class="w-full p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Calculate date difference">
+                    Calculate Difference
+                </button>
+                <p class="mt-4 text-lg text-gray-700" aria-live="polite">
+                    Difference: <span id="date-difference-result" class="font-bold text-indigo-700"></span>
+                </p>
+            `;
+            const startDateInput = container.querySelector('#start-date-input');
+            const endDateInput = container.querySelector('#end-date-input');
+            const resultSpan = container.querySelector('#date-difference-result');
+            const calculateBtn = container.querySelector('#calculate-date-diff-btn');
+
+            calculateBtn.addEventListener('click', () => {
+                if (!startDateInput.value || !endDateInput.value) {
+                    resultSpan.textContent = 'Please select both dates';
+                    announce("Please select both start and end dates.");
+                    playSound('error');
+                    return;
+                }
+
+                const start = new Date(startDateInput.value);
+                const end = new Date(endDateInput.value);
+
+                if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                    resultSpan.textContent = 'Invalid Date';
+                    announce("Invalid date input.");
+                    playSound('error');
+                    return;
+                }
+
+                const diffTime = Math.abs(end.getTime() - start.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const diffYears = Math.floor(diffDays / 365);
+                const remainingDaysAfterYears = diffDays % 365;
+                const diffMonths = Math.floor(remainingDaysAfterYears / 30);
+                const remainingDaysAfterMonths = remainingDaysAfterYears % 30;
+
+                const resultString = `${diffDays} days (${diffYears} years, ${diffMonths} months, ${remainingDaysAfterMonths} days)`;
+                resultSpan.textContent = resultString;
+                announce(`Date difference: ${resultString}.`);
+                playSound('success');
+            });
+            startDateInput.addEventListener('input', () => playSound('click'));
+            endDateInput.addEventListener('input', () => playSound('click'));
+            return container;
+        }
+
+        // 22. Simple Note Pad
+        function renderSimpleNotePad() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Simple Note Pad</h3>
+                <textarea id="notepad-textarea"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y mb-3"
+                    rows="10"
+                    placeholder="Write your notes here..."
+                    aria-label="Note pad text area"
+                ></textarea>
+                <div class="flex gap-2">
+                    <button id="save-note-btn"
+                        class="flex-1 p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Save note">
+                        Save Note
+                    </button>
+                    <button id="clear-note-btn"
+                        class="flex-1 p-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200"
+                        aria-label="Clear note">
+                        Clear Note
+                    </button>
+                </div>
+            `;
+            const textarea = container.querySelector('#notepad-textarea');
+            const saveBtn = container.querySelector('#save-note-btn');
+            const clearBtn = container.querySelector('#clear-note-btn');
+
+            saveBtn.addEventListener('click', () => {
+                // In a real app, you'd save this to local storage, a database, etc.
+                announce("Note saved (conceptually).");
+                playSound('success');
+                console.log("Note saved:", textarea.value);
+            });
+
+            clearBtn.addEventListener('click', () => {
+                textarea.value = '';
+                announce("Note cleared.");
+                playSound('click');
+            });
+            textarea.addEventListener('input', () => playSound('click'));
+            return container;
+        }
+
+        // 23. Dice Roller
+        function renderDiceRoller() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Dice Roller</h3>
+                <div class="flex gap-4 mb-4">
+                    <div class="flex-1">
+                        <label for="num-dice-input" class="block text-gray-700 text-sm font-bold mb-2">Number of Dice:</label>
+                        <input id="num-dice-input" type="number" min="1" value="1"
+                            class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                            aria-label="Number of dice to roll"
+                        />
+                    </div>
+                    <div class="flex-1">
+                        <label for="sides-input" class="block text-gray-700 text-sm font-bold mb-2">Sides per Die:</label>
+                        <input id="sides-input" type="number" min="2" value="6"
+                            class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                            aria-label="Number of sides on each die"
+                        />
+                    </div>
+                </div>
+                <button id="roll-dice-btn"
+                    class="w-full p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Roll dice">
+                    Roll Dice
+                </button>
+                <div class="mt-4 p-3 bg-gray-100 border border-gray-300 rounded-md" aria-live="polite">
+                    <p class="text-lg text-gray-700">Results: <span id="dice-results" class="font-bold text-indigo-700"></span></p>
+                    <p class="text-lg text-gray-700">Total: <span id="dice-total" class="font-bold text-indigo-700"></span></p>
+                </div>
+            `;
+            const numDiceInput = container.querySelector('#num-dice-input');
+            const sidesInput = container.querySelector('#sides-input');
+            const resultsSpan = container.querySelector('#dice-results');
+            const totalSpan = container.querySelector('#dice-total');
+            const rollBtn = container.querySelector('#roll-dice-btn');
+
+            rollBtn.addEventListener('click', () => {
+                const numDice = parseInt(numDiceInput.value, 10);
+                const sides = parseInt(sidesInput.value, 10);
+
+                if (isNaN(numDice) || isNaN(sides) || numDice <= 0 || sides <= 0) {
+                    resultsSpan.textContent = 'Invalid input';
+                    totalSpan.textContent = '0';
+                    announce("Invalid number of dice or sides.");
+                    playSound('error');
+                    return;
+                }
+
+                const newResults = [];
+                let newTotal = 0;
+                for (let i = 0; i < numDice; i++) {
+                    const roll = Math.floor(Math.random() * sides) + 1;
+                    newResults.push(roll);
+                    newTotal += roll;
+                }
+                resultsSpan.textContent = newResults.join(', ');
+                totalSpan.textContent = newTotal;
+                announce(`Rolled ${numDice} dice with ${sides} sides. Results: ${newResults.join(', ')}. Total: ${newTotal}.`);
+                playSound('dice-roll');
+            });
+            numDiceInput.addEventListener('input', () => playSound('click'));
+            sidesInput.addEventListener('input', () => playSound('click'));
+            return container;
+        }
+
+        // 24. Roman Numeral Converter
+        function renderRomanNumeralConverter() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Roman Numeral Converter</h3>
+                <input type="text" id="roman-input"
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 mb-3"
+                    placeholder="Enter number or Roman numeral"
+                    aria-label="Input for Roman numeral conversion"
+                />
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button id="to-roman-btn"
+                        class="flex-1 p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Convert to Roman numeral">
+                        To Roman
+                    </button>
+                    <button id="from-roman-btn"
+                        class="flex-1 p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                        aria-label="Convert from Roman numeral">
+                        From Roman
+                    </button>
+                </div>
+                <p class="mt-4 text-lg text-gray-700" aria-live="polite">
+                    Result: <span id="roman-result" class="font-bold text-indigo-700"></span>
+                </p>
+            `;
+            const input = container.querySelector('#roman-input');
+            const resultSpan = container.querySelector('#roman-result');
+            const toRomanBtn = container.querySelector('#to-roman-btn');
+            const fromRomanBtn = container.querySelector('#from-roman-btn');
+
+            const romanMap = {
+                M: 1000, CM: 900, D: 500, CD: 400, C: 100, XC: 90, L: 50, XL: 40, X: 10, IX: 9, V: 5, IV: 4, I: 1
+            };
+
+            const toRoman = (num) => {
+                if (num < 1 || num > 3999) return 'Number out of range (1-3999)';
+                let roman = '';
+                for (const i in romanMap) {
+                    while (num >= romanMap[i]) {
+                        roman += i;
+                        num -= romanMap[i];
+                    }
+                }
+                return roman;
+            };
+
+            const fromRoman = (roman) => {
+                roman = roman.toUpperCase();
+                let num = 0;
+                let i = 0;
+                while (i < roman.length) {
+                    if (i + 1 < roman.length && romanMap[roman.substring(i, i + 2)]) {
+                        num += romanMap[roman.substring(i, i + 2)];
+                        i += 2;
+                    } else if (romanMap[roman.substring(i, i + 1)]) {
+                        num += romanMap[roman.substring(i, i + 1)];
+                        i += 1;
+                    } else {
+                        return 'Invalid Roman Numeral';
+                    }
+                }
+                return num;
+            };
+
+            toRomanBtn.addEventListener('click', () => {
+                const num = parseInt(input.value, 10);
+                if (isNaN(num)) {
+                    resultSpan.textContent = 'Invalid input';
+                    announce("Invalid number for Roman numeral conversion.");
+                    playSound('error');
+                } else {
+                    const roman = toRoman(num);
+                    resultSpan.textContent = roman;
+                    announce(`Converted ${num} to Roman numeral: ${roman}.`);
+                    playSound('success');
+                }
+            });
+
+            fromRomanBtn.addEventListener('click', () => {
+                const num = fromRoman(input.value);
+                resultSpan.textContent = num;
+                announce(`Converted ${input.value} from Roman numeral to: ${num}.`);
+                playSound('success');
+            });
+            input.addEventListener('input', () => playSound('click'));
+            return container;
+        }
+
+        // 25. Binary/Decimal/Hex Converter
+        function renderBaseConverter() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Base Converter</h3>
+                <div class="mb-4">
+                    <label for="base-converter-input-value" class="block text-gray-700 text-sm font-bold mb-2">Input Value:</label>
+                    <input id="base-converter-input-value" type="text"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        placeholder="Enter value"
+                        aria-label="Input value for base conversion"
+                    />
+                </div>
+                <div class="mb-4">
+                    <label for="base-converter-input-type" class="block text-gray-700 text-sm font-bold mb-2">Input Type:</label>
+                    <select id="base-converter-input-type"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        aria-label="Select input base type">
+                        <option value="decimal">Decimal</option>
+                        <option value="binary">Binary</option>
+                        <option value="hex">Hexadecimal</option>
+                    </select>
+                </div>
+                <div class="mt-4 space-y-2 p-3 bg-gray-100 border border-gray-300 rounded-md" aria-live="polite">
+                    <p class="text-lg text-gray-700">Binary: <span id="binary-result" class="font-bold text-indigo-700"></span></p>
+                    <p class="text-lg text-gray-700">Decimal: <span id="decimal-result" class="font-bold text-indigo-700"></span></p>
+                    <p class="text-lg text-gray-700">Hex: <span id="hex-result" class="font-bold text-indigo-700"></span></p>
+                </div>
+            `;
+            const input = container.querySelector('#base-converter-input-value');
+            const inputTypeSelect = container.querySelector('#base-converter-input-type');
+            const binaryResult = container.querySelector('#binary-result');
+            const decimalResult = container.querySelector('#decimal-result');
+            const hexResult = container.querySelector('#hex-result');
+
+            const convert = () => {
+                let decValue = NaN;
+                const inputValue = input.value.trim();
+
+                if (inputTypeSelect.value === 'decimal') {
+                    decValue = parseInt(inputValue, 10);
+                } else if (inputTypeSelect.value === 'binary') {
+                    if (/^[01]+$/.test(inputValue)) {
+                        decValue = parseInt(inputValue, 2);
+                    }
+                } else if (inputTypeSelect.value === 'hex') {
+                    if (/^[0-9A-Fa-f]+$/.test(inputValue)) {
+                        decValue = parseInt(inputValue, 16);
+                    }
+                }
+
+                if (isNaN(decValue)) {
+                    binaryResult.textContent = 'Invalid Input';
+                    decimalResult.textContent = 'Invalid Input';
+                    hexResult.textContent = 'Invalid Input';
+                    announce("Invalid input for base conversion.");
+                    playSound('error');
+                } else {
+                    binaryResult.textContent = decValue.toString(2);
+                    decimalResult.textContent = decValue.toString(10);
+                    hexResult.textContent = decValue.toString(16).toUpperCase();
+                    announce(`Converted ${inputValue} from ${inputTypeSelect.value}.`);
+                    playSound('success');
+                }
+            };
+
+            input.addEventListener('input', () => { convert(); playSound('click'); });
+            inputTypeSelect.addEventListener('change', () => { convert(); playSound('click'); });
+
+            return container;
+        }
+
+        // 26. PDF Reader
+        function renderPdfReader() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">PDF Reader</h3>
+                <input type="file" id="pdf-file-input" accept=".pdf"
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Upload PDF file"
+                />
+                <div class="flex justify-between items-center mb-3">
+                    <button id="pdf-prev-page"
+                        class="p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Previous page">
+                        Previous
+                    </button>
+                    <span class="text-lg font-semibold text-gray-700" aria-live="polite">
+                        Page: <span id="pdf-current-page">0</span> / <span id="pdf-total-pages">0</span>
+                    </span>
+                    <button id="pdf-next-page"
+                        class="p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Next page">
+                        Next
+                    </button>
+                </div>
+                <div class="mb-3">
+                    <label for="pdf-jump-page" class="sr-only">Jump to page:</label>
+                    <input type="number" id="pdf-jump-page" min="1" value="1"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        placeholder="Jump to page"
+                        aria-label="Jump to page number"
+                    />
+                </div>
+                <div class="relative w-full h-96 border border-gray-300 rounded-md overflow-hidden bg-gray-50 flex items-center justify-center mb-3">
+                    <canvas id="pdf-canvas" class="max-w-full max-h-full"></canvas>
+                    <p id="pdf-loading-message" class="absolute text-gray-500">Upload a PDF to view</p>
+                </div>
+                <h4 class="text-lg font-semibold mb-2 text-gray-800">Extracted Text:</h4>
+                <textarea id="pdf-text-output"
+                    class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 resize-y"
+                    rows="8"
+                    readonly
+                    placeholder="Extracted text from PDF will appear here..."
+                    aria-label="Extracted text from PDF"
+                ></textarea>
+                <div class="flex gap-2 mt-3">
+                    <button id="copy-pdf-text-btn"
+                        class="flex-1 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Copy extracted PDF text to clipboard" disabled>
+                        Copy Text
+                    </button>
+                    <button id="share-pdf-text-btn"
+                        class="flex-1 p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Share extracted PDF text" disabled>
+                        Share Text
+                    </button>
+                </div>
+            `;
+            const fileInput = container.querySelector('#pdf-file-input');
+            const prevBtn = container.querySelector('#pdf-prev-page');
+            const nextBtn = container.querySelector('#pdf-next-page');
+            const currentPageSpan = container.querySelector('#pdf-current-page');
+            const totalPagesSpan = container.querySelector('#pdf-total-pages');
+            const jumpPageInput = container.querySelector('#pdf-jump-page');
+            const canvas = container.querySelector('#pdf-canvas');
+            const loadingMessage = container.querySelector('#pdf-loading-message');
+            const textOutput = container.querySelector('#pdf-text-output');
+            const copyTextBtn = container.querySelector('#copy-pdf-text-btn');
+            const shareTextBtn = container.querySelector('#share-pdf-text-btn');
+
+            let pdfDoc = null;
+            let pageNum = 1;
+            let totalPages = 0;
+            const ctx = canvas.getContext('2d');
+
+            const renderPage = async (num) => {
+                if (!pdfDoc) return;
+                loadingMessage.textContent = 'Rendering page...';
+                loadingMessage.classList.remove('hidden');
+                textOutput.value = '';
+                copyTextBtn.disabled = true;
+                shareTextBtn.disabled = true;
+
+                try {
+                    const page = await pdfDoc.getPage(num);
+                    const viewport = page.getViewport({ scale: 1.5 }); // Adjust scale for better quality
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    const renderContext = {
+                        canvasContext: ctx,
+                        viewport: viewport,
+                    };
+                    await page.render(renderContext).promise;
+
+                    // Extract text content
+                    const textContent = await page.getTextContent();
+                    const extractedText = textContent.items.map(item => item.str).join(' ');
+                    textOutput.value = extractedText;
+                    copyTextBtn.disabled = false;
+                    shareTextBtn.disabled = false;
+
+                    pageNum = num;
+                    currentPageSpan.textContent = pageNum;
+                    prevBtn.disabled = pageNum <= 1;
+                    nextBtn.disabled = pageNum >= totalPages;
+                    jumpPageInput.value = pageNum;
+                    jumpPageInput.max = totalPages;
+
+                    announce(`Page ${pageNum} of ${totalPages} loaded.`);
+                    playSound('success');
+                } catch (error) {
+                    console.error('Error rendering PDF page:', error);
+                    textOutput.value = 'Error loading page text.';
+                    announce("Error loading PDF page.");
+                    playSound('error');
+                } finally {
+                    loadingMessage.classList.add('hidden');
+                }
+            };
+
+            fileInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                loadingMessage.textContent = 'Loading PDF...';
+                loadingMessage.classList.remove('hidden');
+                textOutput.value = '';
+                copyTextBtn.disabled = true;
+                shareTextBtn.disabled = true;
+
+                const fileReader = new FileReader();
+                fileReader.onload = async () => {
+                    const arrayBuffer = fileReader.result;
+                    try {
+                        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                        pdfDoc = pdf;
+                        totalPages = pdf.numPages;
+                        totalPagesSpan.textContent = totalPages;
+                        jumpPageInput.max = totalPages;
+                        announce(`PDF loaded. Total pages: ${totalPages}.`);
+                        playSound('success');
+                        await renderPage(1); // Render first page
+                    } catch (error) {
+                        console.error('Error loading PDF:', error);
+                        loadingMessage.textContent = 'Error loading PDF. Please try again.';
+                        announce("Error loading PDF. Please try again.");
+                        playSound('error');
+                        pdfDoc = null;
+                        totalPages = 0;
+                        currentPageSpan.textContent = '0';
+                        totalPagesSpan.textContent = '0';
+                        textOutput.value = 'Failed to load PDF.';
+                        copyTextBtn.disabled = true;
+                        shareTextBtn.disabled = true;
+                    } finally {
+                        loadingMessage.classList.add('hidden');
+                    }
+                };
+                fileReader.readAsArrayBuffer(file);
+                playSound('click');
+            });
+
+            prevBtn.addEventListener('click', () => {
+                if (pageNum > 1) {
+                    renderPage(pageNum - 1);
+                    playSound('click');
+                }
+            });
+
+            nextBtn.addEventListener('click', () => {
+                if (pageNum < totalPages) {
+                    renderPage(pageNum + 1);
+                    playSound('click');
+                }
+            });
+
+            jumpPageInput.addEventListener('change', (e) => {
+                const page = parseInt(e.target.value, 10);
+                if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                    renderPage(page);
+                    playSound('click');
+                } else {
+                    announce("Invalid page number entered.");
+                    playSound('error');
+                }
+            });
+
+            copyTextBtn.addEventListener('click', () => copyToClipboard(textOutput.value));
+            shareTextBtn.addEventListener('click', () => shareText(textOutput.value, 'PDF Extracted Text'));
+
+            return container;
+        }
+
+        // 27. Image Reader (OCR)
+        function renderImageReader() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Image Reader (OCR)</h3>
+                <input type="file" id="image-file-input" accept="image/*"
+                    class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 mb-3"
+                    aria-label="Upload image file"
+                />
+                <div class="relative w-full h-64 border border-gray-300 rounded-md flex items-center justify-center overflow-hidden mb-3 bg-gray-50">
+                    <img id="image-preview" src="" alt="Image Preview" class="max-w-full max-h-full object-contain hidden" />
+                    <p id="image-placeholder" class="text-gray-500">Upload an image to preview</p>
+                </div>
+                <button id="process-image-btn"
+                    class="w-full p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+                    aria-label="Process image for text" disabled>
+                    Process Image
+                </button>
+                <div id="ocr-loading" class="flex items-center justify-center gap-2 text-indigo-700 font-medium hidden mb-3" aria-live="polite">
+                    <div class="loader"></div>
+                    <span>Processing image...</span>
+                </div>
+                <h4 class="text-lg font-semibold mb-2 text-gray-800">Identified Text:</h4>
+                <textarea id="ocr-text-output"
+                    class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 resize-y"
+                    rows="8"
+                    readonly
+                    placeholder="Identified text from image will appear here..."
+                    aria-label="Identified text from image"
+                ></textarea>
+                <div class="flex gap-2 mt-3">
+                    <button id="copy-ocr-text-btn"
+                        class="flex-1 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Copy identified text to clipboard" disabled>
+                        Copy Text
+                    </button>
+                    <button id="share-ocr-text-btn"
+                        class="flex-1 p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Share identified text" disabled>
+                        Share Text
+                    </button>
+                </div>
+            `;
+            const fileInput = container.querySelector('#image-file-input');
+            const imagePreview = container.querySelector('#image-preview');
+            const imagePlaceholder = container.querySelector('#image-placeholder');
+            const processBtn = container.querySelector('#process-image-btn');
+            const ocrLoading = container.querySelector('#ocr-loading');
+            const textOutput = container.querySelector('#ocr-text-output');
+            const copyTextBtn = container.querySelector('#copy-ocr-text-btn');
+            const shareTextBtn = container.querySelector('#share-ocr-text-btn');
+
+            let currentImageFile = null;
+
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    currentImageFile = file;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        imagePreview.src = e.target.result;
+                        imagePreview.classList.remove('hidden');
+                        imagePlaceholder.classList.add('hidden');
+                        processBtn.disabled = false;
+                        textOutput.value = '';
+                        copyTextBtn.disabled = true;
+                        shareTextBtn.disabled = true;
+                        announce("Image loaded. Ready to process.");
+                        playSound('click');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    currentImageFile = null;
+                    imagePreview.src = '';
+                    imagePreview.classList.add('hidden');
+                    imagePlaceholder.classList.remove('hidden');
+                    processBtn.disabled = true;
+                    textOutput.value = '';
+                    copyTextBtn.disabled = true;
+                    shareTextBtn.disabled = true;
+                    announce("No image selected.");
+                }
+            });
+
+            processBtn.addEventListener('click', async () => {
+                if (!currentImageFile) {
+                    announce("Please upload an image first.");
+                    playSound('error');
+                    return;
+                }
+
+                processBtn.disabled = true;
+                ocrLoading.classList.remove('hidden');
+                textOutput.value = 'Processing...';
+                copyTextBtn.disabled = true;
+                shareTextBtn.disabled = true;
+                announce("Starting image processing.");
+                playSound('click');
+
+                try {
+                    const { data: { text } } = await Tesseract.recognize(
+                        currentImageFile,
+                        'eng', // Language code (e.g., 'eng' for English)
+                        { logger: m => console.log(m) } // Optional: log progress
+                    );
+                    textOutput.value = text.trim();
+                    copyTextBtn.disabled = false;
+                    shareTextBtn.disabled = false;
+                    announce("Image processing complete. Text identified.");
+                    playSound('success');
+                } catch (error) {
+                    console.error('OCR Error:', error);
+                    textOutput.value = 'Error: Could not process image text.';
+                    announce("Error processing image.");
+                    playSound('error');
+                } finally {
+                    processBtn.disabled = false;
+                    ocrLoading.classList.add('hidden');
+                }
+            });
+
+            copyTextBtn.addEventListener('click', () => copyToClipboard(textOutput.value));
+            shareTextBtn.addEventListener('click', () => shareText(textOutput.value, 'Image Identified Text'));
+
+            return container;
+        }
+
+        // 29. Text-to-Speech
+        function renderTextToSpeech() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Text-to-Speech</h3>
+                <textarea id="tts-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y mb-3"
+                    rows="8"
+                    placeholder="Enter text to speak..."
+                    aria-label="Text input for text-to-speech"
+                ></textarea>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button id="speak-btn"
+                        class="flex-1 p-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Speak text">
+                        Speak Text
+                    </button>
+                    <button id="stop-speaking-btn"
+                        class="flex-1 p-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Stop speaking" disabled>
+                        Stop Speaking
+                    </button>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button id="copy-tts-text-btn"
+                        class="flex-1 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Copy text to clipboard" disabled>
+                        Copy Text
+                    </button>
+                    <button id="download-tts-text-btn"
+                        class="flex-1 p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Download spoken text as a file" disabled>
+                        Download Text (as file)
+                    </button>
+                </div>
+                <p id="tts-status" class="mt-3 text-center text-gray-600" aria-live="polite"></p>
+            `;
+            const input = container.querySelector('#tts-input');
+            const speakBtn = container.querySelector('#speak-btn');
+            const stopBtn = container.querySelector('#stop-speaking-btn');
+            const copyBtn = container.querySelector('#copy-tts-text-btn');
+            const downloadBtn = container.querySelector('#download-tts-text-btn');
+            const statusMessage = container.querySelector('#tts-status');
+
+            let utterance = null;
+
+            const updateButtonStates = () => {
+                const hasText = input.value.trim().length > 0;
+                speakBtn.disabled = !hasText || window.speechSynthesis.speaking;
+                stopBtn.disabled = !window.speechSynthesis.speaking;
+                copyBtn.disabled = !hasText;
+                downloadBtn.disabled = !hasText;
+            };
+
+            const speakText = () => {
+                const text = input.value.trim();
+                if (!text) {
+                    announce("Please enter text to speak.");
+                    playSound('error');
+                    return;
+                }
+
+                if (window.speechSynthesis.speaking) {
+                    window.speechSynthesis.cancel();
+                }
+
+                utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US'; // Default language, can be made configurable
+                utterance.pitch = 1;
+                utterance.rate = 1;
+
+                utterance.onstart = () => {
+                    statusMessage.textContent = 'Speaking...';
+                    announce("Speaking started.");
+                    playSound('speak');
+                    updateButtonStates();
+                };
+                utterance.onend = () => {
+                    statusMessage.textContent = 'Finished speaking.';
+                    announce("Finished speaking.");
+                    playSound('success');
+                    updateButtonStates();
+                };
+                utterance.onerror = (event) => {
+                    statusMessage.textContent = `Error speaking: ${event.error}`;
+                    announce(`Error speaking: ${event.error}`);
+                    playSound('error');
+                    console.error('SpeechSynthesisUtterance error:', event);
+                    updateButtonStates();
+                };
+
+                window.speechSynthesis.speak(utterance);
+                updateButtonStates();
+            };
+
+            const stopSpeaking = () => {
+                if (window.speechSynthesis.speaking) {
+                    window.speechSynthesis.cancel();
+                    statusMessage.textContent = 'Speech stopped.';
+                    announce("Speech stopped.");
+                    playSound('click');
+                    updateButtonStates();
+                }
+            };
+
+            const downloadTextFile = () => {
+                const text = input.value.trim();
+                if (!text) {
+                    announce("No text to download.");
+                    playSound('error');
+                    return;
+                }
+
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'spoken_text.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                announce("Text file downloaded.");
+                playSound('success');
+            };
+
+            input.addEventListener('input', () => {
+                updateButtonStates();
+                playSound('click');
+            });
+            speakBtn.addEventListener('click', speakText);
+            stopBtn.addEventListener('click', stopSpeaking);
+            copyBtn.addEventListener('click', () => copyToClipboard(input.value));
+            downloadBtn.addEventListener('click', downloadTextFile);
+
+            // Initial state update
+            updateButtonStates();
+            return container;
+        }
+
+        // 30. Typing Test
+        function renderTypingTest() {
+            const container = document.createElement('div');
+            container.className = "p-4 bg-white rounded-lg shadow-md border border-gray-200";
+            container.innerHTML = `
+                <h3 class="text-xl font-semibold mb-3 text-gray-800">Typing Test</h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    Type the text below as accurately and quickly as you can. Your accuracy and words per minute (WPM) will be calculated.
+                    Click "Start Test" to begin, or simply start typing.
+                    For screen reader users: The text to type is displayed above the input box. Errors will be announced.
+                </p>
+
+                <div class="mb-4">
+                    <label for="text-select" class="block text-gray-700 text-sm font-bold mb-2">Choose Text:</label>
+                    <select id="text-select"
+                        class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                        aria-label="Select typing test text">
+                        <option value="0">Short Phrase</option>
+                        <option value="1">Medium Paragraph</option>
+                        <option value="2">Longer Passage</option>
+                        <option value="3">Alphabet (A-Z)</option>
+                    </select>
+                </div>
+
+                <div id="typing-text-display" class="typing-text-container text-gray-800" role="textbox" aria-readonly="true" aria-multiline="true">
+                    <!-- Text will be rendered here -->
+                </div>
+
+                <textarea id="typing-input"
+                    class="w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 resize-y font-mono"
+                    rows="6"
+                    placeholder="Start typing here when the test begins..."
+                    aria-label="Typing input area"
+                    aria-describedby="typing-text-display"
+                    disabled
+                ></textarea>
+
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <button id="start-test-btn"
+                        class="flex-1 p-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200"
+                        aria-label="Start typing test">
+                        Start Test
+                    </button>
+                    <button id="reset-test-btn"
+                        class="flex-1 p-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200"
+                        aria-label="Reset typing test">
+                        Reset Test
+                    </button>
+                </div>
+
+                <div class="mt-4 p-3 bg-gray-100 border border-gray-300 rounded-md" aria-live="polite">
+                    <p class="text-lg text-gray-700">Time: <span id="time-taken" class="font-bold text-indigo-700">0s</span></p>
+                    <p class="text-lg text-gray-700">Accuracy: <span id="accuracy-result" class="font-bold text-indigo-700">0%</span></p>
+                    <p class="text-lg text-gray-700">WPM: <span id="wpm-result" class="font-bold text-indigo-700">0</span></p>
+                </div>
+            `;
+
+            const texts = [
+                "The quick brown fox jumps over the lazy dog.",
+                "Programming is the art of telling a computer what to do. It requires logical thinking, problem-solving skills, and a good understanding of algorithms. Practice makes perfect in this exciting field.",
+                "In the vast expanse of the cosmos, countless stars twinkle, each a distant sun. Galaxies swirl in majestic dances, and nebulae paint the void with vibrant colors. Humanity's quest to understand this universe continues, pushing the boundaries of knowledge and technology.",
+                "abcdefghijklmnopqrstuvwxyz" // New alphabet text
+            ];
+
+            let currentTextIndex = 0;
+            let originalText = '';
+            let startTime = 0;
+            let timerInterval = null;
+            let isTestRunning = false;
+            let correctChars = 0;
+            let totalCharsTyped = 0;
+
+            const textSelect = container.querySelector('#text-select');
+            const typingTextDisplay = container.querySelector('#typing-text-display');
+            const typingInput = container.querySelector('#typing-input');
+            const startBtn = container.querySelector('#start-test-btn');
+            const resetBtn = container.querySelector('#reset-test-btn');
+            const timeTakenSpan = container.querySelector('#time-taken');
+            const accuracyResultSpan = container.querySelector('#accuracy-result');
+            const wpmResultSpan = container.querySelector('#wpm-result');
+
+            const loadText = (index) => {
+                originalText = texts[index];
+                typingTextDisplay.innerHTML = originalText.split('').map((char, i) => `<span id="char-${i}">${char}</span>`).join('');
+                typingInput.value = '';
+                typingInput.disabled = true;
+                startBtn.disabled = false;
+                resetBtn.disabled = false;
+                timeTakenSpan.textContent = '0s';
+                accuracyResultSpan.textContent = '0%';
+                wpmResultSpan.textContent = '0';
+                correctChars = 0;
+                totalCharsTyped = 0;
+                clearInterval(timerInterval);
+                isTestRunning = false;
+
+                if (index === 3) { // Alphabet test
+                    announce("New typing test text loaded. Type the alphabet from A to Z, then press Enter to finish. Click Start Test to begin.");
+                } else {
+                    announce("New typing test text loaded. Click Start Test to begin.");
+                }
+            };
+
+            const startTest = () => {
+                if (isTestRunning) return;
+                isTestRunning = true;
+                typingInput.disabled = false;
+                typingInput.focus();
+                startTime = new Date().getTime();
+                startBtn.disabled = true;
+                resetBtn.disabled = false;
+
+                // Announce the start and the very first character for screen readers
+                if (currentTextIndex === 3) { // Alphabet test
+                    announce(`Typing test started. Type the alphabet from A to Z. The first character to type is "${originalText[0]}".`);
+                } else {
+                    announce(`Typing test started. Begin typing now. The first character to type is "${originalText[0]}".`);
+                }
+
+                timerInterval = setInterval(() => {
+                    const elapsed = Math.floor((new Date().getTime() - startTime) / 1000);
+                    timeTakenSpan.textContent = `${elapsed}s`;
+                }, 1000);
+                playSound('click');
+            };
+
+            const resetTest = () => {
+                clearInterval(timerInterval);
+                loadText(currentTextIndex); // Reload the current text
+                announce("Typing test reset.");
+                playSound('click');
+            };
+
+            const calculateResults = () => {
+                const endTime = new Date().getTime();
+                const timeInSeconds = (endTime - startTime) / 1000;
+                const timeInMinutes = timeInSeconds / 60;
+
+                // WPM calculation based on correct characters / 5
+                const wpm = timeInMinutes > 0 ? Math.round(correctChars / 5 / timeInMinutes) : 0;
+
+                const accuracy = totalCharsTyped > 0 ? ((correctChars / totalCharsTyped) * 100).toFixed(2) : 0;
+
+                timeTakenSpan.textContent = `${timeInSeconds.toFixed(1)}s`;
+                accuracyResultSpan.textContent = `${accuracy}%`;
+                wpmResultSpan.textContent = wpm;
+
+                announce(`Test finished! Your WPM is ${wpm} and accuracy is ${accuracy} percent.`);
+                playSound('success');
+            };
+
+            // Event listener for Enter key in Alphabet mode
+            typingInput.addEventListener('keydown', (e) => {
+                // For alphabet test (index 3), pressing Enter ends the test
+                if (isTestRunning && currentTextIndex === 3 && e.key === 'Enter') {
+                    e.preventDefault(); // Prevent newline in textarea
+                    clearInterval(timerInterval);
+                    isTestRunning = false;
+                    typingInput.disabled = true;
+                    calculateResults();
+                    playSound('success');
+                }
+            });
+
+            typingInput.addEventListener('input', (e) => {
+                if (!isTestRunning) {
+                    startTest(); // Auto-start on first input
+                }
+
+                const typedText = e.target.value;
+                totalCharsTyped = typedText.length;
+
+                correctChars = 0;
+                let displayHtml = '';
+                let errorDetectedInThisInput = false;
+
+                for (let i = 0; i < originalText.length; i++) {
+                    const originalChar = originalText[i];
+                    const typedChar = typedText[i];
+                    let spanClass = '';
+
+                    if (typedChar === undefined) {
+                        // Character not yet typed
+                        if (i === typedText.length) {
+                            spanClass = 'current-char'; // Highlight current character to type
+                        }
+                    } else if (typedChar === originalChar) {
+                        spanClass = 'correct-char';
+                        correctChars++;
+                    } else {
+                        spanClass = 'incorrect-char';
+                        // Announce error only if this is the character just typed and it's wrong
+                        if (i === typedText.length - 1) { // Check if this is the last character typed
+                            announce(`Incorrect. You typed "${typedChar}", expected "${originalChar}".`);
+                            playSound('error');
+                            errorDetectedInThisInput = true;
+                        }
+                    }
+                    displayHtml += `<span id="char-${i}" class="${spanClass}">${originalChar}</span>`;
+                }
+
+                typingTextDisplay.innerHTML = displayHtml;
+
+                // Scroll the display text to keep the current typing position in view
+                const currentCharElement = typingTextDisplay.querySelector(`#char-${typedText.length}`);
+                if (currentCharElement) {
+                    currentCharElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+
+                // For sentence modes, end test automatically when all characters are typed
+                // For alphabet mode, the test ends on Enter key press (handled by keydown listener)
+                if (currentTextIndex !== 3 && typedText.length === originalText.length) {
+                    clearInterval(timerInterval);
+                    isTestRunning = false;
+                    typingInput.disabled = true;
+                    calculateResults();
+                    playSound('success');
+                } else if (!errorDetectedInThisInput) {
+                    // Play click sound only if no error was detected in this specific input event
+                    playSound('click');
+                }
+            });
+
+            textSelect.addEventListener('change', (e) => {
+                currentTextIndex = parseInt(e.target.value, 10);
+                resetTest(); // Reset and load new text
+                playSound('select');
+            });
+
+            startBtn.addEventListener('click', startTest);
+            resetBtn.addEventListener('click', resetTest);
+
+            // Initial load
+            loadText(currentTextIndex);
+            return container;
+        }
+
+
+        // --- Main Application Logic ---
+        const tools = [
+            { id: 'char-counter', name: 'Character Counter', render: renderCharacterCounter },
+            { id: 'word-counter', name: 'Word Counter', render: renderWordCounter },
+            { id: 'line-counter', name: 'Line Counter', render: renderLineCounter },
+            { id: 'case-converter', name: 'Case Converter', render: renderCaseConverter },
+            { id: 'whitespace-remover', name: 'Whitespace Remover', render: renderWhitespaceRemover },
+            { id: 'text-reverser', name: 'Text Reverser', render: renderTextReverser },
+            { id: 'base64-converter', name: 'Base64 Encoder/Decoder', render: renderBase64Converter },
+            { id: 'url-converter', name: 'URL Encoder/Decoder', render: renderURLConverter },
+            { id: 'markdown-to-html', name: 'Markdown to HTML', render: renderMarkdownToHTMLConverter },
+            { id: 'html-to-markdown', name: 'HTML to Markdown', render: renderHTMLToMarkdownConverter },
+            { id: 'simple-calculator', name: 'Simple Calculator', render: renderSimpleCalculator },
+            { id: 'unit-converter', name: 'Unit Converter', render: renderUnitConverter },
+            { id: 'percentage-calculator', name: 'Percentage Calculator', render: renderPercentageCalculator },
+            { id: 'age-calculator', name: 'Age Calculator', render: renderAgeCalculator },
+            { id: 'random-number-generator', name: 'Random Number Generator', render: renderRandomNumberGenerator },
+            { id: 'password-generator', name: 'Password Generator', render: renderPasswordGenerator },
+            { id: 'color-picker', name: 'Color Picker', render: renderColorPicker },
+            { id: 'qr-code-generator', name: 'QR Code Generator', render: renderQRCodeGenerator },
+            { id: 'stopwatch', name: 'Stopwatch', render: renderStopwatch },
+            { id: 'timer', name: 'Timer', render: renderTimer },
+            { id: 'date-difference-calculator', name: 'Date Difference Calculator', render: renderDateDifferenceCalculator },
+            { id: 'simple-note-pad', name: 'Simple Note Pad', render: renderSimpleNotePad },
+            { id: 'dice-roller', name: 'Dice Roller', render: renderDiceRoller },
+            { id: 'roman-numeral-converter', name: 'Roman Numeral Converter', render: renderRomanNumeralConverter },
+            { id: 'base-converter', name: 'Binary/Decimal/Hex Converter', render: renderBaseConverter },
+            // New tools
+            { id: 'pdf-reader', name: 'PDF Reader', render: renderPdfReader },
+            { id: 'image-reader', name: 'Image Reader (OCR)', render: renderImageReader },
+            { id: 'text-to-speech', name: 'Text-to-Speech', render: renderTextToSpeech },
+            { id: 'typing-test', name: 'Typing Test', render: renderTypingTest }, // Typing Test tool
+        ];
+
+        let activeToolId = null;
+        const toolSelectDropdown = document.getElementById('tool-select-dropdown');
+        const mainContentElement = document.getElementById('main-content');
+        const soundToggleButton = document.getElementById('sound-toggle');
+        const soundOnIcon = document.getElementById('sound-on-icon');
+        const soundOffIcon = document.getElementById('sound-off-icon');
+
+        // Function to render the active tool
+        function renderActiveTool() {
+            mainContentElement.innerHTML = ''; // Clear previous content
+            const tool = tools.find(t => t.id === activeToolId);
+            if (tool) {
+                const toolElement = tool.render();
+                mainContentElement.appendChild(toolElement);
+                announce(`${tool.name} selected.`);
+            } else {
+                mainContentElement.innerHTML = `
+                    <div class="text-center text-gray-600 p-8">
+                        <p class="text-2xl font-medium">Select a tool from the left sidebar to get started!</p>
+                        <p class="text-lg mt-2">This app provides over 25 useful tools for various tasks, with advanced accessibility features and sound feedback.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Populate dropdown and attach event listener
+        tools.forEach(tool => {
+            const option = document.createElement('option');
+            option.value = tool.id;
+            option.textContent = tool.name;
+            toolSelectDropdown.appendChild(option);
+        });
+
+        toolSelectDropdown.addEventListener('change', (e) => {
+            const selectedToolId = e.target.value;
+            if (selectedToolId) {
+                activeToolId = selectedToolId;
+                playSound('select');
+                renderActiveTool();
+            } else {
+                // Handle case where "Choose a tool" is selected
+                activeToolId = null;
+                mainContentElement.innerHTML = `
+                    <div class="text-center text-gray-600 p-8">
+                        <p class="text-2xl font-medium">Select a tool from the left sidebar to get started!</p>
+                        <p class="text-lg mt-2">This app provides over 25 useful tools for various tasks, with advanced accessibility features and sound feedback.</p>
+                    </div>
+                `;
+                announce("No tool selected.");
+            }
+        });
+
+        // Sound toggle button logic
+        soundToggleButton.addEventListener('click', () => {
+            isSoundEnabled = !isSoundEnabled;
+            if (isSoundEnabled) {
+                soundOnIcon.classList.remove('hidden');
+                soundOffIcon.classList.add('hidden');
+                soundToggleButton.setAttribute('aria-label', 'Disable sounds');
+                announce("Sound enabled.");
+                playSound('click');
+            } else {
+                soundOnIcon.classList.add('hidden');
+                soundOffIcon.classList.remove('hidden');
+                soundToggleButton.setAttribute('aria-label', 'Enable sounds');
+                announce("Sound disabled.");
+                // No sound played for disabling, as intended
+            }
+        });
+
+        // Initial render (will show the "Select a tool" message)
+        renderActiveTool();
+    </script>
+</body>
+</html>
