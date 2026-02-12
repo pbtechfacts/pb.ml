@@ -1,0 +1,12 @@
+name: Build HTML APK
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Web to APK
+        uses: darkshredder/website-to-apk-action@v1.1
+        with:
+          app-name: "My Cool App"
+          build-folder-path: "./" # Where your index.html is
