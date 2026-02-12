@@ -1,15 +1,41 @@
 name: Build APK
-on: [push]
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+        continue-on-error: true
 
       - name: Build APK
         uses: darkshredder/website-to-apk-action@v1.1
         with:
           app-name: "MyProject"
           build-folder-path: "."
+          
+      - name: Upload APK Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-build
+          path: "*.apk"
+          retention-days: 30
