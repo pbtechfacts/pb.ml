@@ -1,13 +1,15 @@
 name: Build APK
 on: [push]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
-      - name: Create APK
+
+      - name: Build APK
         uses: darkshredder/website-to-apk-action@v1.1
         with:
-          app-name: "MyFirstApp"
+          app-name: "MyProject"
           build-folder-path: "."
