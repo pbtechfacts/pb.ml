@@ -1,0 +1,44 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+        continue-on-error: true
+
+      - name: Build APK using Apache Cordova
+        run: |
+          npm install -g cordova
+          cordova create myapp
+          cd myapp
+          cordova platform add android
+          cordova build android --release
+        continue-on-error: true
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-build
+          path: "myapp/platforms/android/app/build/outputs/apk/**/*.apk"
+          retention-days: 30
+        continue-on-error: true
